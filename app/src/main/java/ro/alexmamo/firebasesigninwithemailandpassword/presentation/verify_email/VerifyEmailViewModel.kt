@@ -1,12 +1,14 @@
 package ro.alexmamo.firebasesigninwithemailandpassword.presentation.verify_email
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import ro.alexmamo.firebasesigninwithemailandpassword.core.AuthErrorHandler
 import ro.alexmamo.firebasesigninwithemailandpassword.domain.model.Response
 import ro.alexmamo.firebasesigninwithemailandpassword.domain.repository.AuthRepository
 import javax.inject.Inject
@@ -15,8 +17,10 @@ typealias ReloadUserResponse = Response<Unit>
 
 @HiltViewModel
 class VerifyEmailViewModel @Inject constructor(
+    application: Application,
     private val repo: AuthRepository
-): ViewModel() {
+): AndroidViewModel(application) {
+    private val context = application
     val isEmailVerified get() = repo.currentUser?.isEmailVerified == true
 
     private val _reloadUserState = MutableStateFlow<ReloadUserResponse>(Response.Idle)
@@ -31,7 +35,8 @@ class VerifyEmailViewModel @Inject constructor(
             _reloadUserState.value = Response.Success(repo.reloadUser())
             _isEmailVerifiedState.value = isEmailVerified
         } catch (e: Exception) {
-            _reloadUserState.value = Response.Failure(e)
+            val errorMessage = AuthErrorHandler.handleAuthException(e, context)
+            _reloadUserState.value = Response.Failure(Exception(errorMessage))
         }
     }
 }

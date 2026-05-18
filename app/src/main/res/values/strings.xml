@@ -37,4 +37,13 @@
     <string name="reset_password_message">We\'ve sent you an email with a link to reset the password.</string>"
     <string name="reauthentication_required_message">You need to reauthenticate before deleting the user.</string>
     <string name="user_deleted_message">User successfully deleted.</string>
+    <!--Firebase Auth Error Messages-->
+    <string name="weak_password_message">Password must be at least 6 characters long.</string>
+    <string name="email_already_in_use_message">This email is already registered. Please sign in or use a different email.</string>
+    <string name="invalid_email_format_message">Please enter a valid email address.</string>
+    <string name="user_not_found_message">No account found with this email address.</string>
+    <string name="wrong_password_message">Incorrect password. Please try again.</string>
+    <string name="network_error_message">Network error. Please check your connection and try again.</string>
+    <string name="too_many_requests_message">Too many login attempts. Please try again later.</string>
+    <string name="generic_auth_error_message">Authentication failed. Please try again.</string>
 </resources>
