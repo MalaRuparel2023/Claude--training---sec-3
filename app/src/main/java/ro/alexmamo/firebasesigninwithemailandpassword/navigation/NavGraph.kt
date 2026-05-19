@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import ro.alexmamo.firebasesigninwithemailandpassword.presentation.email_link_signin.EmailLinkSignInScreen
 import ro.alexmamo.firebasesigninwithemailandpassword.presentation.forgot_password.ForgotPasswordScreen
 import ro.alexmamo.firebasesigninwithemailandpassword.presentation.profile.ProfileScreen
 import ro.alexmamo.firebasesigninwithemailandpassword.presentation.sign_in.SignInScreen
@@ -28,6 +29,13 @@ fun NavGraph(
             SignInScreen(
                 navigate = navController::navigate,
                 navigateAndClear = navController::navigateAndClear
+            )
+        }
+        composable<Route.EmailLinkSignIn> {
+            EmailLinkSignInScreen(
+                navigate = navController::navigate,
+                navigateAndClear = navController::navigateAndClear,
+                navigateBack = navController::navigateUp
             )
         }
         composable<Route.ForgotPassword> {

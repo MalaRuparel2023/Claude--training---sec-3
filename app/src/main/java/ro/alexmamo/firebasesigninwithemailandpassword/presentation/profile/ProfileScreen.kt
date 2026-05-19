@@ -29,7 +29,15 @@ fun ProfileScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val isUserSignedOut by viewModel.authState.collectAsStateWithLifecycle()
+    val currentUser = viewModel.repo?.currentUser
+    val displayName by viewModel.displayName.collectAsStateWithLifecycle()
+    val currentPassword by viewModel.currentPassword.collectAsStateWithLifecycle()
+    val newEmail by viewModel.newEmail.collectAsStateWithLifecycle()
+    val newPassword by viewModel.newPassword.collectAsStateWithLifecycle()
     val deleteUserResponse by viewModel.deleteUserState.collectAsStateWithLifecycle()
+    val updateProfileResponse by viewModel.updateProfileState.collectAsStateWithLifecycle()
+    val updateEmailResponse by viewModel.updateEmailState.collectAsStateWithLifecycle()
+    val updatePasswordResponse by viewModel.updatePasswordState.collectAsStateWithLifecycle()
     val userDeletedMessage = stringResource(R.string.user_deleted_message)
     val sensitiveKeyword = stringResource(R.string.sensitive_keyword)
     val reauthenticationRequiredMessage = stringResource(R.string.reauthentication_required_message)
@@ -49,12 +57,92 @@ fun ProfileScreen(
         }
     ) { innerPadding ->
         ProfileContent(
-            innerPadding = innerPadding
+            innerPadding = innerPadding,
+            currentUser = currentUser,
+            displayName = displayName,
+            onDisplayNameChange = viewModel::onDisplayNameChange,
+            onUpdateProfile = viewModel::updateProfile,
+            currentPassword = currentPassword,
+            onCurrentPasswordChange = viewModel::onCurrentPasswordChange,
+            newEmail = newEmail,
+            onNewEmailChange = viewModel::onNewEmailChange,
+            onUpdateEmail = viewModel::updateEmail,
+            newPassword = newPassword,
+            onNewPasswordChange = viewModel::onNewPasswordChange,
+            onUpdatePassword = viewModel::updatePassword,
+            isUpdatingProfile = updateProfileResponse is Response.Loading,
+            isUpdatingEmail = updateEmailResponse is Response.Loading,
+            isUpdatingPassword = updatePasswordResponse is Response.Loading
         )
     }
 
     if (isUserSignedOut) {
         navigateAndClear(Route.SignIn)
+    }
+
+    val profileResp = updateProfileResponse
+    when (profileResp) {
+        is Response.Idle -> {}
+        is Response.Loading -> LoadingIndicator()
+        is Response.Success -> LaunchedEffect(Unit) {
+            showToastMessage(context, "Profile updated successfully")
+        }
+        is Response.Failure -> profileResp.e?.message?.let { errorMessage ->
+            LaunchedEffect(errorMessage) {
+                logErrorMessage(errorMessage)
+                showToastMessage(context, errorMessage)
+            }
+        }
+    }
+
+    val emailResp = updateEmailResponse
+    when (emailResp) {
+        is Response.Idle -> {}
+        is Response.Loading -> LoadingIndicator()
+        is Response.Success -> LaunchedEffect(Unit) {
+            showToastMessage(context, "Email updated successfully")
+        }
+        is Response.Failure -> emailResp.e?.message?.let { errorMessage ->
+            LaunchedEffect(errorMessage) {
+                logErrorMessage(errorMessage)
+                if (errorMessage.contains(sensitiveKeyword)) {
+                    val result = snackbarHostState.showSnackbar(
+                        message = reauthenticationRequiredMessage,
+                        actionLabel = signOutActionLabel
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.signOut()
+                    }
+                } else {
+                    showToastMessage(context, errorMessage)
+                }
+            }
+        }
+    }
+
+    val passwordResp = updatePasswordResponse
+    when (passwordResp) {
+        is Response.Idle -> {}
+        is Response.Loading -> LoadingIndicator()
+        is Response.Success -> LaunchedEffect(Unit) {
+            showToastMessage(context, "Password updated successfully")
+        }
+        is Response.Failure -> passwordResp.e?.message?.let { errorMessage ->
+            LaunchedEffect(errorMessage) {
+                logErrorMessage(errorMessage)
+                if (errorMessage.contains(sensitiveKeyword)) {
+                    val result = snackbarHostState.showSnackbar(
+                        message = reauthenticationRequiredMessage,
+                        actionLabel = signOutActionLabel
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.signOut()
+                    }
+                } else {
+                    showToastMessage(context, errorMessage)
+                }
+            }
+        }
     }
 
     when(val deleteUserResponse = deleteUserResponse) {
@@ -72,7 +160,7 @@ fun ProfileScreen(
                         actionLabel = signOutActionLabel
                     )
                     if (result == SnackbarResult.ActionPerformed) {
-                        viewModel::signOut
+                        viewModel.signOut()
                     }
                 } else {
                     showToastMessage(context, errorMessage)

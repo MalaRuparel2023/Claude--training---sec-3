@@ -10,6 +10,9 @@ sealed interface Route {
     object SignIn : Route
 
     @Serializable
+    object EmailLinkSignIn : Route
+
+    @Serializable
     object ForgotPassword : Route
 
     @Serializable
