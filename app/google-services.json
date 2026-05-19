@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "375452750804",
+    "project_id": "signinwithemailandpasswo-70f99",
+    "storage_bucket": "signinwithemailandpasswo-70f99.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:375452750804:android:012069ce4b287eb8a97c41",
+        "android_client_info": {
+          "package_name": "ro.alexmamo.firebasesigninwithemailandpassword"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV9jLyqJLqr9SPHzAN_Cf_xVQ4XIPXtdQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
