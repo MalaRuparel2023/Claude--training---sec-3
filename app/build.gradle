@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "ro.alexmamo.firebasesigninwithemailandpassword"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ro.alexmamo.firebasesigninwithemailandpassword"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -60,6 +60,18 @@ dependencies {
     //DataStore & Security
     implementation(libs.datastore.preferences)
     implementation(libs.security.crypto)
+    //Stream Chat
+    implementation(libs.stream.chat.android.client)
+    implementation(libs.stream.chat.android.compose)
+    //Coroutines
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.core)
+    //Image Loading
+    implementation(libs.coil.compose)
+    //Lifecycle
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    //Activity
+    implementation(libs.androidx.activity.compose)
     //Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
