@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -20,6 +21,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Room exported schemas — checked in so migrations can be diffed/tested.
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
     }
 
     compileOptions {
@@ -35,9 +41,27 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
+
+    // `prod` uses the real Stream Chat SDK; `mock` swaps in an in-memory fake so the app
+    // can run/preview/test without network or Stream credentials. The ChatRepository
+    // binding is selected per flavor via a flavor-specific Hilt module (src/prod, src/mock).
+    flavorDimensions = ["environment"]
+    productFlavors {
+        prod {
+            dimension = "environment"
+        }
+        mock {
+            dimension = "environment"
+            versionNameSuffix = "-mock"
+        }
+    }
 }
 
 dependencies {
+    //Modules
+    implementation(project(":domain"))
+    //Material Components (XML theme: Theme.Material3.DayNight) — all flavors
+    implementation(libs.android.material)
     //Compose
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material)
@@ -50,7 +74,10 @@ dependencies {
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
     //Firebase
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
     //Google Play Services for Google Sign-In
     implementation(libs.play.services.auth)
     //Serialization
@@ -60,12 +87,17 @@ dependencies {
     //DataStore & Security
     implementation(libs.datastore.preferences)
     implementation(libs.security.crypto)
-    //Stream Chat
-    implementation(libs.stream.chat.android.client)
-    implementation(libs.stream.chat.android.compose)
+    //Room (offline cache + draft outbox)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+    //Stream Chat (prod flavor only — mock has no Stream dependency)
+    prodImplementation(libs.stream.chat.android.client)
+    prodImplementation(libs.stream.chat.android.compose)
     //Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.play.services)
     //Image Loading
     implementation(libs.coil.compose)
     //Lifecycle
@@ -83,4 +115,45 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.hilt.android.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+}
+
+// Code coverage (Kover). Measured over the testable layers only — ViewModels and
+// data/domain logic. Compose UI, DI, generated (Hilt/Room/KSP) and theme are excluded
+// because JVM unit tests can't exercise them; counting them would understate real coverage.
+// Reports run on every build (gate-later); to enforce the 80% target, wire koverVerify*
+// into CI once coverage reaches the bound.
+kover {
+    reports {
+        filters {
+            excludes {
+                packages(
+                    "com.mr.claudetraining.ui.theme",
+                    "com.mr.claudetraining.ui.screens",
+                    "com.mr.claudetraining.ui.components",
+                    "com.mr.claudetraining.ui.navigation",
+                    "com.mr.claudetraining.di"
+                )
+                classes(
+                    "com.mr.claudetraining.MainActivity",
+                    "com.mr.claudetraining.SrteamChatApp",
+                    "*.BuildConfig",
+                    "*ComposableSingletons*",
+                    "*_Factory",
+                    "*_Factory*",
+                    "*_HiltModules*",
+                    "*Hilt_*",
+                    "hilt_aggregated_deps.*",
+                    "dagger.hilt.*",
+                    "*_Impl",
+                    "*_Impl*"
+                )
+                annotatedBy("androidx.compose.runtime.Composable")
+            }
+        }
+        verify {
+            rule {
+                minBound(80)
+            }
+        }
+    }
 }
