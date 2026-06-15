@@ -1,3 +1,22 @@
 <resources>
-    <string name="app_name">SrteamChat</string>
+    <string name="app_name">Claude Training</string>
+    <string name="tasty_title">TASTY</string>
+    <string name="hero_title_part1">Meat, Eat &amp; Enjoy</string>
+    <string name="hero_title_part2">the true taste</string>
+    <string name="see_more">SEE MORE</string>
+    <string name="menu_categories">Menu Categories</string>
+    <string name="salads">SALADS</string>
+    <string name="pizza">PIZZA</string>
+    <string name="burger">BURGER</string>
+    <string name="from_price">from %s</string>
+    <string name="order_now">Order Now</string>
+    <string name="our_suggest">Our Suggest</string>
+    <string name="our_suggest_desc">Lorem ipsum dolor sit amet consectetur. Maecenas nunc</string>
+    <string name="why_us">Why Us?</string>
+    <string name="faq">FAQ</string>
+    <string name="about_us">About Us</string>
+    <string name="about_us_desc">Lorem ipsum dolor sit amet consectetur. Quam tincidunt convallis sit eget. Sed mi dictumst risus morbi ornare consequat donec. Arcu amet sed ut suspendisse.</string>
+    <string name="footer_text">get the Best &amp; Tasty Foods with Hight Quality</string>
+    <string name="copyright">© designed by zaynab khosravi</string>
+    <string name="faq_placeholder">Lorem ipsum dolor sit amet consectetur. Sagittis egestas commodo ?</string>
 </resources>

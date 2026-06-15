@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -20,6 +21,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Room exported schemas — checked in so migrations can be diffed/tested.
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
     }
 
     compileOptions {
@@ -32,12 +38,56 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
+    }
+
+    // Release signing is wired only when a keystore is present (CI provides it via
+    // KEYSTORE_FILE + secrets). Local debug builds and unsigned CI builds are unaffected.
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("KEYSTORE_FILE")
+            if (keystorePath != null && file(keystorePath).exists()) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            if (System.getenv("KEYSTORE_FILE") != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    // `prod` uses the real Stream Chat SDK; `mock` swaps in an in-memory fake so the app
+    // can run/preview/test without network or Stream credentials. The ChatRepository
+    // binding is selected per flavor via a flavor-specific Hilt module (src/prod, src/mock).
+    flavorDimensions = ["environment"]
+    productFlavors {
+        prod {
+            dimension = "environment"
+        }
+        mock {
+            dimension = "environment"
+            versionNameSuffix = "-mock"
+        }
     }
 }
 
 dependencies {
+    //Modules
+    implementation(project(":domain"))
+    //Material Components (XML theme: Theme.Material3.DayNight) — all flavors
+    implementation(libs.android.material)
     //Compose
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material)
@@ -50,7 +100,10 @@ dependencies {
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
     //Firebase
+    implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
     //Google Play Services for Google Sign-In
     implementation(libs.play.services.auth)
     //Serialization
@@ -60,12 +113,17 @@ dependencies {
     //DataStore & Security
     implementation(libs.datastore.preferences)
     implementation(libs.security.crypto)
-    //Stream Chat
-    implementation(libs.stream.chat.android.client)
-    implementation(libs.stream.chat.android.compose)
+    //Room (offline cache + draft outbox)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+    //Stream Chat (prod flavor only — mock has no Stream dependency)
+    prodImplementation(libs.stream.chat.android.client)
+    prodImplementation(libs.stream.chat.android.compose)
     //Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.play.services)
     //Image Loading
     implementation(libs.coil.compose)
     //Lifecycle
@@ -83,4 +141,64 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.hilt.android.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+}
+
+// Code coverage (Kover). Measured over the layers JVM unit tests can actually exercise —
+// ViewModels, pure repository logic (flow resilience, filtering, search), and DTO/Entity
+// mappers. Excluded because plain unit tests can't drive them (counting them would just
+// understate real coverage): Compose UI, DI, Hilt/Room/KSP-generated code, the theme, the
+// Firebase-backed repositories and Room/sync/storage layers (covered by instrumented tests
+// instead — see app/src/androidTest), and the mock-flavor test double FakeChatRepository.
+// The 80% bound below is enforced in CI via :app:koverVerifyMockDebug.
+kover {
+    reports {
+        filters {
+            excludes {
+                packages(
+                    "com.mr.claudetraining.ui.theme",
+                    "com.mr.claudetraining.ui.screens",
+                    "com.mr.claudetraining.ui.components",
+                    "com.mr.claudetraining.ui.navigation",
+                    "com.mr.claudetraining.di",
+                    // Framework-bound layers — exercised by instrumented tests, not JVM unit tests.
+                    "com.mr.claudetraining.data.sync",
+                    "com.mr.claudetraining.data.storage"
+                )
+                classes(
+                    "com.mr.claudetraining.MainActivity",
+                    "com.mr.claudetraining.SrteamChatApp",
+                    // Firebase-backed repositories — require Firestore; integration-tested.
+                    "com.mr.claudetraining.data.repository.AuthRepositoryImpl",
+                    "com.mr.claudetraining.data.repository.JobRepositoryImpl",
+                    "com.mr.claudetraining.data.repository.JobRepositoryImpl*",
+                    "com.mr.claudetraining.data.repository.HealthRepositoryImpl",
+                    "com.mr.claudetraining.data.repository.HealthRepositoryImpl*",
+                    "com.mr.claudetraining.data.repository.YogaRepositoryImpl",
+                    "com.mr.claudetraining.data.repository.YogaRepositoryImpl*",
+                    // Mock-flavor in-memory test double (test support, not production logic).
+                    "com.mr.claudetraining.data.repository.FakeChatRepository",
+                    // Room database + DAOs — exercised by the instrumented DAO test.
+                    "com.mr.claudetraining.data.local.TalentSureDatabase",
+                    "*Dao",
+                    "*Dao\$DefaultImpls",
+                    "*.BuildConfig",
+                    "*ComposableSingletons*",
+                    "*_Factory",
+                    "*_Factory*",
+                    "*_HiltModules*",
+                    "*Hilt_*",
+                    "hilt_aggregated_deps.*",
+                    "dagger.hilt.*",
+                    "*_Impl",
+                    "*_Impl*"
+                )
+                annotatedBy("androidx.compose.runtime.Composable")
+            }
+        }
+        verify {
+            rule {
+                minBound(80)
+            }
+        }
+    }
 }

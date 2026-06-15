@@ -1,0 +1,228 @@
+package com.mr.claudetraining.data.repository
+
+import io.getstream.chat.android.client.ChatClient
+import io.getstream.chat.android.client.api.models.QueryChannelsRequest
+import io.getstream.chat.android.client.events.ChannelDeletedEvent
+import io.getstream.chat.android.client.events.ConnectedEvent
+import io.getstream.chat.android.client.events.DisconnectedEvent
+import io.getstream.chat.android.client.events.NewMessageEvent
+import io.getstream.chat.android.client.events.TypingStartEvent
+import io.getstream.chat.android.client.events.TypingStopEvent
+import io.getstream.chat.android.client.events.UserPresenceChangedEvent
+import io.getstream.chat.android.models.Filters
+import io.getstream.chat.android.models.Message
+import io.getstream.chat.android.models.Reaction
+import io.getstream.chat.android.models.User
+import io.getstream.chat.android.models.querysort.QuerySortByField
+import io.getstream.result.Result
+import io.getstream.result.call.Call
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import com.mr.claudetraining.data.model.toDomain
+import com.mr.claudetraining.domain.model.ChannelSnapshot
+import com.mr.claudetraining.domain.model.ChatChannel
+import com.mr.claudetraining.domain.model.ChatConnectionState
+import com.mr.claudetraining.domain.model.ChatMessage
+import com.mr.claudetraining.domain.model.ChatUser
+import com.mr.claudetraining.domain.repository.ChatRepository
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class ChatRepositoryImpl @Inject constructor(
+    private val chatClient: ChatClient
+) : ChatRepository {
+
+    private val _connectionState = MutableStateFlow<ChatConnectionState>(ChatConnectionState.Idle)
+    override val connectionState: StateFlow<ChatConnectionState> = _connectionState.asStateFlow()
+
+    override fun currentUserId(): String? = chatClient.getCurrentUser()?.id
+
+    override fun connect() {
+        chatClient.getCurrentUser()?.let {
+            _connectionState.value = ChatConnectionState.Connected(it.id)
+            return
+        }
+
+        _connectionState.value = ChatConnectionState.Connecting
+
+        // TODO: Replace with real per-user credentials issued by the backend.
+        // These are Stream's public quickstart demo credentials.
+        val user = User(
+            id = DEMO_USER_ID,
+            name = "Tutorial User",
+            image = "https://getstream.io/random_png/?id=$DEMO_USER_ID&size=200"
+        )
+
+        chatClient.connectUser(user = user, token = DEMO_USER_TOKEN).enqueue { result ->
+            when (result) {
+                is Result.Success -> {
+                    _connectionState.value = ChatConnectionState.Connected(user.id)
+                    subscribeToConnectionEvents()
+                }
+                is Result.Failure ->
+                    _connectionState.value =
+                        ChatConnectionState.Error(result.value.message ?: "Failed to connect")
+            }
+        }
+    }
+
+    private fun subscribeToConnectionEvents() {
+        chatClient.subscribeFor(
+            ConnectedEvent::class.java,
+            DisconnectedEvent::class.java
+        ) { event ->
+            when (event) {
+                is ConnectedEvent -> _connectionState.value = ChatConnectionState.Connected(event.me.id)
+                is DisconnectedEvent -> _connectionState.value = ChatConnectionState.Disconnected
+                else -> Unit
+            }
+        }
+    }
+
+    override fun disconnect(clearData: Boolean) {
+        chatClient.disconnect(flushPersistence = clearData).enqueue {
+            _connectionState.value =
+                if (clearData) ChatConnectionState.SignedOut else ChatConnectionState.Disconnected
+        }
+    }
+
+    override fun observeChannels(): Flow<List<ChatChannel>> = callbackFlow {
+        val currentUserId = currentUserId()
+            ?: throw IllegalStateException("Not connected")
+
+        val request = QueryChannelsRequest(
+            filter = Filters.and(
+                Filters.eq("type", "messaging"),
+                Filters.`in`("members", listOf(currentUserId))
+            ),
+            querySort = QuerySortByField.descByName("last_message_at"),
+            limit = 30,
+            offset = 0,
+            messageLimit = 1
+        )
+
+        suspend fun emitChannels() {
+            val channels = chatClient.queryChannels(request).awaitOrThrow()
+            trySend(channels.map { it.toDomain() })
+        }
+
+        emitChannels()
+
+        val subscription = chatClient.subscribeFor(
+            NewMessageEvent::class.java,
+            ChannelDeletedEvent::class.java
+        ) {
+            chatClient.queryChannels(request).enqueue { result ->
+                if (result is Result.Success) trySend(result.value.map { it.toDomain() })
+            }
+        }
+
+        awaitClose { subscription.dispose() }
+    }
+
+    override suspend fun createDemoChannel() {
+        val currentUserId = currentUserId() ?: DEMO_USER_ID
+        chatClient.channel("messaging", "general").create(
+            memberIds = listOf(currentUserId),
+            extraData = mapOf("name" to "General Chat")
+        ).awaitOrThrow()
+    }
+
+    override fun watchChannel(channelId: String): Flow<ChannelSnapshot> = callbackFlow {
+        val channelClient = chatClient.channel("messaging", channelId)
+
+        var channelName = channelId
+        val messages = mutableListOf<ChatMessage>()
+        val typingUsers = mutableListOf<ChatUser>()
+
+        fun emit(isDeleted: Boolean = false) {
+            trySend(
+                ChannelSnapshot(
+                    channelName = channelName,
+                    messages = messages.toList(),
+                    typingUsers = typingUsers.toList(),
+                    isDeleted = isDeleted
+                )
+            )
+        }
+
+        val channel = channelClient.watch().awaitOrThrow()
+        val currentUserId = currentUserId() ?: ""
+        channelName = channel.name.ifEmpty { channelId }
+        messages.addAll(channel.messages.map { it.toDomain(currentUserId) })
+        emit()
+
+        val subscription = channelClient.subscribeFor(
+            NewMessageEvent::class.java,
+            TypingStartEvent::class.java,
+            TypingStopEvent::class.java,
+            UserPresenceChangedEvent::class.java,
+            ChannelDeletedEvent::class.java
+        ) { event ->
+            when (event) {
+                is NewMessageEvent -> {
+                    val message = event.message.toDomain(currentUserId)
+                    if (messages.none { it.id == message.id }) {
+                        messages.add(message)
+                        emit()
+                    }
+                }
+                is TypingStartEvent -> {
+                    val typingUser = event.user.toDomain()
+                    if (typingUsers.none { it.id == typingUser.id }) {
+                        typingUsers.add(typingUser)
+                        emit()
+                    }
+                }
+                is TypingStopEvent -> {
+                    if (typingUsers.removeAll { it.id == event.user.id }) emit()
+                }
+                is ChannelDeletedEvent -> emit(isDeleted = true)
+                else -> Unit
+            }
+        }
+
+        awaitClose {
+            subscription.dispose()
+            channelClient.stopTyping(parentId = null).enqueue()
+            channelClient.stopWatching().enqueue()
+        }
+    }
+
+    override suspend fun sendMessage(channelId: String, text: String) {
+        chatClient.channel("messaging", channelId)
+            .sendMessage(Message(text = text))
+            .awaitOrThrow()
+    }
+
+    override fun startTyping(channelId: String) {
+        chatClient.channel("messaging", channelId).keystroke(parentId = null).enqueue()
+    }
+
+    override fun stopTyping(channelId: String) {
+        chatClient.channel("messaging", channelId).stopTyping(parentId = null).enqueue()
+    }
+
+    override suspend fun addReaction(messageId: String, emoji: String) {
+        chatClient.sendReaction(
+            reaction = Reaction(messageId = messageId, type = emoji),
+            enforceUnique = false
+        ).awaitOrThrow()
+    }
+
+    private suspend fun <T : Any> Call<T>.awaitOrThrow(): T = when (val result = await()) {
+        is Result.Success -> result.value
+        is Result.Failure -> throw IllegalStateException(result.value.message)
+    }
+
+    private companion object {
+        const val DEMO_USER_ID = "tutorial-demi"
+        const val DEMO_USER_TOKEN =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidHV0b3JpYWwtZGVtaSJ9.cWndtYsPXVwINzDWUbYFmvUnpja73ytEorSQA-LEdPA"
+    }
+}
