@@ -23,7 +23,7 @@ import com.mr.claudetraining.ui.viewmodel.UserConnectionViewModel
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()
     private val userConnectionViewModel: UserConnectionViewModel by viewModels()
-
+//chnages
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
