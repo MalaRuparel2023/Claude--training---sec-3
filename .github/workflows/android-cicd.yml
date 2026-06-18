@@ -7,7 +7,8 @@ name: Android CI/CD
 #   build (debug APK artifact) ─────────────────┘   (tags v* / manual only)
 #
 #   On push to `dev`: lint + unit-tests + instrumented-tests ─► dev-release
-#   (bump versionCode/versionName, commit back, then assemble the APK).
+#   (bump versionCode/versionName, commit back, assemble the APK, and
+#   distribute it to testers via Firebase App Distribution).
 #
 # Unit tests, coverage and lint run against the `mock` flavor (no Stream/network
 # credentials). The release bundle that ships to Play is built from the `prod` flavor.
@@ -205,9 +206,9 @@ jobs:
           path: app/build/outputs/apk/mock/debug/*.apk
           if-no-files-found: error
 
-  # ───────────────────────────────────────────────── Dev: bump version + build APK
+  # ───────────────────────────── Dev: bump version + build APK + distribute
   dev-release:
-    name: Bump version + build (dev)
+    name: Bump version + build + distribute (dev)
     needs: [lint, unit-tests, instrumented-tests]
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -257,6 +258,21 @@ jobs:
           name: app-mock-debug-v${{ env.NEW_NAME }}
           path: app/build/outputs/apk/mock/debug/*.apk
           if-no-files-found: error
+
+      # Distribute the freshly built APK to testers via Firebase App Distribution.
+      # serviceCredentialsFileContent = JSON of a service account with the
+      # "Firebase App Distribution Admin" role. Testers in FIREBASE_TESTER_GROUPS
+      # (comma-separated group aliases) get the new build automatically.
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: ${{ vars.FIREBASE_TESTER_GROUPS || 'qa' }}
+          releaseNotes: |
+            dev build v${{ env.NEW_NAME }} (${{ env.NEW_CODE }})
+            commit ${{ github.sha }}
+          file: app/build/outputs/apk/mock/debug/app-mock-debug.apk
 
   # ───────────────────────────────────────────────── Deploy to Play (internal track)
   deploy:

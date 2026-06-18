@@ -33,7 +33,7 @@ instrumented-tests┼─► build (debug APK)         [non-dev refs]
 | `unit-tests` | `:domain:test` + `:app:testMockDebugUnitTest`, Kover XML/HTML report, `:app:koverVerifyMockDebug`, Codecov upload | **Fails if line coverage < 80%** |
 | `instrumented-tests` | `:app:connectedMockDebugAndroidTest` on an API-30 emulator | Fails on test failure |
 | `build` | Assembles `mockDebug` APK artifact (skipped on `dev`) | — |
-| `dev-release` | On push to `dev`: bumps `versionCode`/`versionName`, commits back with `[skip ci]`, uploads APK | Needs lint+unit+instrumented green |
+| `dev-release` | On push to `dev`: bumps `versionCode`/`versionName`, commits back with `[skip ci]`, assembles the APK, and **distributes it to testers via Firebase App Distribution** | Needs lint+unit+instrumented green |
 | `deploy` | On `v*` tags: builds signed `prodRelease` bundle, uploads to Play **internal** track | Needs all gates green; uses `play-internal` environment |
 
 All builds, lint and coverage use the **`mock`** flavor (in-memory fakes — no Stream/network creds). Only the release bundle uses the **`prod`** flavor.
@@ -98,6 +98,8 @@ Configure under **Settings ▸ Secrets and variables ▸ Actions** and **Setting
 | Secret | Used by | Purpose |
 |---|---|---|
 | `CODECOV_TOKEN` | unit-tests | Upload coverage to Codecov |
+| `FIREBASE_APP_ID` | dev-release | Firebase Android app ID (`1:…:android:…`) |
+| `FIREBASE_SERVICE_ACCOUNT` | dev-release | JSON of a service account with the *Firebase App Distribution Admin* role |
 | `KEYSTORE_BASE64` | deploy jobs | base64 of the upload keystore |
 | `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` | deploy jobs | Signing credentials |
 | `PLAY_SERVICE_ACCOUNT_JSON` | deploy jobs | Play Developer API service account |
@@ -111,6 +113,27 @@ Create the keystore secret with:
 ```bash
 base64 -w0 release.keystore   # paste output into KEYSTORE_BASE64
 ```
+
+## Firebase App Distribution (dev builds)
+
+Every push to `dev` that passes the gates auto-distributes the `mockDebug` APK to
+testers. In `dev-release`, after the version bump and `assembleMockDebug`, the
+`wzieba/Firebase-Distribution-Github-Action` step uploads the APK to Firebase App
+Distribution with the bumped version and commit SHA as release notes.
+
+Setup (one time):
+
+1. **Service account** — in the Firebase / Google Cloud console create a service
+   account with the **Firebase App Distribution Admin** role, download its JSON
+   key, and store the file contents as the `FIREBASE_SERVICE_ACCOUNT` secret.
+2. **App ID** — store the Android app ID as the `FIREBASE_APP_ID` secret
+   (this project's is `1:375452750804:android:012069ce4b287eb8a97c41`).
+3. **Tester groups** — create group(s) in Firebase ▸ App Distribution ▸ Testers &
+   Groups, then set the repo **variable** `FIREBASE_TESTER_GROUPS` to the
+   comma-separated group aliases (defaults to `qa` if unset):
+   `gh variable set FIREBASE_TESTER_GROUPS --body "qa,internal"`
+
+Testers in those groups get an email/notification with the new build automatically.
 
 ## How to ship
 
