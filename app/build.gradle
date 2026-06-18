@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.devtools.ksp)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kover)
@@ -104,6 +105,9 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.config)
+    implementation(libs.firebase.analytics)
     //Google Play Services for Google Sign-In
     implementation(libs.play.services.auth)
     //Serialization
@@ -162,7 +166,10 @@ kover {
                     "com.mr.claudetraining.di",
                     // Framework-bound layers — exercised by instrumented tests, not JVM unit tests.
                     "com.mr.claudetraining.data.sync",
-                    "com.mr.claudetraining.data.storage"
+                    "com.mr.claudetraining.data.storage",
+                    // Firebase Remote Config / Crashlytics wrappers — require Firebase SDK.
+                    "com.mr.claudetraining.data.config",
+                    "com.mr.claudetraining.data.crash"
                 )
                 classes(
                     "com.mr.claudetraining.MainActivity",

@@ -28,6 +28,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,8 +52,12 @@ import com.mr.claudetraining.ui.screens.ProfileScreen
 import com.mr.claudetraining.ui.screens.ProgressScreen
 import com.mr.claudetraining.domain.model.ChatConnectionState
 import com.mr.claudetraining.ui.screens.ActivityDetailScreen
+import com.mr.claudetraining.ui.screens.ConfigScreen
+import com.mr.claudetraining.ui.screens.NewActivityDetailScreen
 import com.mr.claudetraining.ui.screens.WorkoutScreen
 import com.mr.claudetraining.ui.screens.YogaScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.mr.claudetraining.ui.viewmodel.FeatureFlagsViewModel
 
 sealed class Route(val route: String) {
     object Home : Route("home")
@@ -68,6 +73,7 @@ sealed class Route(val route: String) {
     object AccountSettings : Route("account_settings")
     object WorkoutLog : Route("workout_log")
     object ActivityDetail : Route("activity_detail")
+    object Config : Route("config")
 }
 
 private data class BottomNavItem(
@@ -192,7 +198,13 @@ private fun MainScaffold(
                 )
             }
             composable(Route.ActivityDetail.route) {
-                ActivityDetailScreen(onBack = { navController.popBackStack() })
+                val flagsViewModel: FeatureFlagsViewModel = hiltViewModel()
+                val flags by flagsViewModel.flags.collectAsState()
+                if (flags.newJobDetailUi) {
+                    NewActivityDetailScreen(onBack = { navController.popBackStack() })
+                } else {
+                    ActivityDetailScreen(onBack = { navController.popBackStack() })
+                }
             }
             composable(Route.Diary.route) { DiaryScreen() }
             composable(Route.Workout.route) {
@@ -207,7 +219,8 @@ private fun MainScaffold(
                     onSignOut = onSignOut,
                     onOpenChat = { navController.navigate(Route.ChatList.route) },
                     onOpenNotifications = { navController.navigate(Route.Notifications.route) },
-                    onOpenAccountSettings = { navController.navigate(Route.AccountSettings.route) }
+                    onOpenAccountSettings = { navController.navigate(Route.AccountSettings.route) },
+                    onOpenConfig = { navController.navigate(Route.Config.route) }
                 )
             }
             composable(Route.Notifications.route) {
@@ -218,6 +231,9 @@ private fun MainScaffold(
                     onBack = { navController.popBackStack() },
                     onSignOut = onSignOut
                 )
+            }
+            composable(Route.Config.route) {
+                ConfigScreen(onBack = { navController.popBackStack() })
             }
             composable(Route.ChatList.route) {
                 ChatListScreen(
