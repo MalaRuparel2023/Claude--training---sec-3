@@ -134,6 +134,7 @@ Setup (one time):
    `gh variable set FIREBASE_TESTER_GROUPS --body "qa,internal"`
 
 Testers in those groups get an email/notification with the new build automatically.
+The active `qa` group must contain at least one tester email for the build to reach anyone.
 
 ## How to ship
 
