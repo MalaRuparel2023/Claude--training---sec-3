@@ -19,4 +19,6 @@
     <string name="footer_text">get the Best &amp; Tasty Foods with Hight Quality</string>
     <string name="copyright">© designed by zaynab khosravi</string>
     <string name="faq_placeholder">Lorem ipsum dolor sit amet consectetur. Sagittis egestas commodo ?</string>
+    <string name="default_notification_channel_id">default_channel_v2</string>
+    <string name="default_notification_channel_name">General</string>
 </resources>

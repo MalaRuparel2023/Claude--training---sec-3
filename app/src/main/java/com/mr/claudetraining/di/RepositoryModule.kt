@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import com.mr.claudetraining.data.config.RemoteConfigFeatureFlagProvider
 import com.mr.claudetraining.data.crash.CrashlyticsReporter
+import com.mr.claudetraining.data.messaging.FcmTokenRepository
 import com.mr.claudetraining.data.repository.AuthRepositoryImpl
 import com.mr.claudetraining.data.repository.FilteredJobsRepositoryImpl
 import com.mr.claudetraining.data.repository.HealthRepositoryImpl
@@ -18,6 +19,7 @@ import com.mr.claudetraining.domain.repository.FeatureFlagProvider
 import com.mr.claudetraining.domain.repository.FilteredJobsRepository
 import com.mr.claudetraining.domain.repository.HealthRepository
 import com.mr.claudetraining.domain.repository.JobRepository
+import com.mr.claudetraining.domain.repository.PushTokenRepository
 import com.mr.claudetraining.domain.repository.SearchRepository
 import com.mr.claudetraining.domain.repository.YogaRepository
 import javax.inject.Singleton
@@ -57,6 +59,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCrashReporter(impl: CrashlyticsReporter): CrashReporter
+
+    @Binds
+    @Singleton
+    abstract fun bindPushTokenRepository(impl: FcmTokenRepository): PushTokenRepository
 
     // ChatRepository is bound per flavor (src/prod, src/mock) — see each flavor's ChatModule.
 }

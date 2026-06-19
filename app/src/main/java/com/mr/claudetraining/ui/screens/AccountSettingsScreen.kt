@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.StarRate
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,7 +48,8 @@ import com.mr.claudetraining.ui.components.SimpleTopBar
 @Composable
 fun AccountSettingsScreen(
     onBack: () -> Unit,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onOpenConfig: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -85,6 +87,10 @@ fun AccountSettingsScreen(
             SettingsGroup(title = "About") {
                 SettingRow(Icons.Filled.PrivacyTip, "Privacy policy")
                 SettingRow(Icons.Filled.Info, "About SrteamChat")
+            }
+
+            SettingsGroup(title = "Developer") {
+                SettingRow(Icons.Filled.Tune, "Remote Config (Dev/QA)", onClick = onOpenConfig)
             }
 
             Button(

@@ -3,12 +3,12 @@ package com.mr.claudetraining.ui.screens
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,44 +21,50 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Pool
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.SportsGymnastics
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mr.claudetraining.ui.components.AnimatedEntry
-import com.mr.claudetraining.ui.components.CalorieRing
-import com.mr.claudetraining.ui.components.MacroBar
 import com.mr.claudetraining.ui.components.SimpleTopBar
 import com.mr.claudetraining.ui.theme.FiteloGreen
 import com.mr.claudetraining.ui.theme.FiteloGreenDark
@@ -67,12 +73,15 @@ import com.mr.claudetraining.ui.viewmodel.HealthUiState
 import com.mr.claudetraining.ui.viewmodel.HealthViewModel
 import kotlinx.coroutines.delay
 
+private const val ACTIVE_MINUTES_GOAL = 30
+
 @Composable
 fun HealthDashboardScreen(
     onOpenActivity: () -> Unit = {},
     viewModel: HealthViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    var showWeightDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         SimpleTopBar(title = "Healthify")
@@ -84,14 +93,25 @@ fun HealthDashboardScreen(
         ) {
             item { Header() }
 
-            // Upper: continuous, auto-advancing horizontal slider of featured sessions.
+            // Auto-advancing horizontal slider of featured sessions.
             item { AnimatedEntry(index = 0) { FeaturedSlider() } }
 
-            item { Padded { AnimatedEntry(index = 1) { CalorieHeroCard(state) } } }
+            // Fitness summary for today (no food/diary data — that lives on the Diary tab).
+            item { Padded { AnimatedEntry(index = 1) { StatsHeroCard(state) } } }
 
-            // Lower: horizontal yoga-pose row.
+            item { Padded { AnimatedEntry(index = 2) {
+                QuickActions(
+                    onLogWeight = { showWeightDialog = true },
+                    onAddWater = { viewModel.changeWater(1) },
+                    onActivity = onOpenActivity
+                )
+            } } }
+
+            item { Padded { AnimatedEntry(index = 3) { TodaysGoalsCard(state) } } }
+
+            // Horizontal yoga-pose row.
             item {
-                AnimatedEntry(index = 2) {
+                AnimatedEntry(index = 4) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         SectionHeader("Yoga poses", "Flow at your pace")
                         PoseRow(YOGA_POSES)
@@ -99,9 +119,9 @@ fun HealthDashboardScreen(
                 }
             }
 
-            // Lower: horizontal gym / cardio row.
+            // Horizontal gym / cardio row.
             item {
-                AnimatedEntry(index = 3) {
+                AnimatedEntry(index = 5) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         SectionHeader("Strength & cardio", "Build. Burn. Repeat.")
                         PoseRow(WORKOUTS)
@@ -109,11 +129,20 @@ fun HealthDashboardScreen(
                 }
             }
 
-            item { Padded { AnimatedEntry(index = 4) { NetCaloriesCard(state) } } }
-            item { Padded { AnimatedEntry(index = 5) { WaterCard(state.water.glasses, state.goal.waterGoalGlasses, viewModel::changeWater) } } }
-            item { Padded { AnimatedEntry(index = 6) { ActivityCard(state, onClick = onOpenActivity) } } }
-            item { Padded { AnimatedEntry(index = 7) { WeightCard(state) } } }
+            item { Padded { AnimatedEntry(index = 6) { WaterCard(state.water.glasses, state.goal.waterGoalGlasses, viewModel::changeWater) } } }
+            item { Padded { AnimatedEntry(index = 7) { ActivityCard(state, onClick = onOpenActivity) } } }
+            item { Padded { AnimatedEntry(index = 8) { WeightCard(state, onClick = { showWeightDialog = true }) } } }
         }
+    }
+
+    if (showWeightDialog) {
+        LogWeightDialog(
+            onDismiss = { showWeightDialog = false },
+            onSave = { kg ->
+                viewModel.addWeight(kg)
+                showWeightDialog = false
+            }
+        )
     }
 }
 
@@ -137,6 +166,184 @@ private fun Header() {
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+// ---------------------------------------------------------------------------
+// Stats hero — today's fitness summary
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun StatsHeroCard(state: HealthUiState) {
+    val workouts = state.workoutEntries
+    val burned = workouts.sumOf { it.caloriesBurned }
+    val minutes = workouts.sumOf { it.durationMinutes }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Brush.horizontalGradient(listOf(FiteloGreen, FiteloGreenDark)))
+            .padding(20.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                "Today's activity",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.9f),
+                fontWeight = FontWeight.Medium
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                HeroStat(Icons.Filled.LocalFireDepartment, "$burned", "kcal burned")
+                HeroStat(Icons.Filled.Timer, "$minutes", "active min")
+                HeroStat(Icons.Filled.FitnessCenter, "${workouts.size}", "workouts")
+                HeroStat(Icons.Filled.WaterDrop, "${state.water.glasses}", "glasses")
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroStat(icon: ImageVector, value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.85f))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Quick actions
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun QuickActions(
+    onLogWeight: () -> Unit,
+    onAddWater: () -> Unit,
+    onActivity: () -> Unit
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        QuickAction(Icons.Filled.MonitorWeight, "Log weight", FiteloGreen, Modifier.weight(1f), onLogWeight)
+        QuickAction(Icons.Filled.WaterDrop, "Add water", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f), onAddWater)
+        QuickAction(Icons.Filled.FitnessCenter, "Activity", FiteloOrange, Modifier.weight(1f), onActivity)
+    }
+}
+
+@Composable
+private fun QuickAction(icon: ImageVector, label: String, tint: Color, modifier: Modifier, onClick: () -> Unit) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(44.dp).clip(CircleShape).background(tint.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(22.dp))
+            }
+            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Today's goals checklist
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun TodaysGoalsCard(state: HealthUiState) {
+    val minutes = state.workoutEntries.sumOf { it.durationMinutes }
+    val loggedWeightToday = state.weightEntries.any { it.date == state.date }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("Today's goals", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            GoalRow("Move $ACTIVE_MINUTES_GOAL minutes", minutes, ACTIVE_MINUTES_GOAL, "min")
+            GoalRow("Drink ${state.goal.waterGoalGlasses} glasses", state.water.glasses, state.goal.waterGoalGlasses, "glasses")
+            GoalCheckRow("Log today's weight", loggedWeightToday)
+        }
+    }
+}
+
+@Composable
+private fun GoalRow(label: String, value: Int, goal: Int, unit: String) {
+    val done = goal > 0 && value >= goal
+    val fraction = if (goal > 0) (value.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                if (done) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp).weight(1f))
+            Text("$value / $goal $unit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        LinearProgressIndicator(
+            progress = { fraction },
+            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape)
+        )
+    }
+}
+
+@Composable
+private fun GoalCheckRow(label: String, done: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            if (done) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp).weight(1f))
+        Text(if (done) "Done" else "Pending", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Log weight dialog
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun LogWeightDialog(onDismiss: () -> Unit, onSave: (Float) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val weight = text.toFloatOrNull()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Log weight") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Weight (kg)") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { weight?.let(onSave) },
+                enabled = weight != null && weight > 0f
+            ) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -326,100 +533,8 @@ private fun PoseCard(pose: Pose) {
 }
 
 // ---------------------------------------------------------------------------
-// Existing health cards
+// Fitness cards
 // ---------------------------------------------------------------------------
-
-@Composable
-private fun CalorieHeroCard(state: HealthUiState) {
-    val n = state.nutrition
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            CalorieRing(
-                consumed = n.caloriesConsumed,
-                goal = state.goal.calorieGoal,
-                burned = n.caloriesBurned
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BudgetStat(Icons.Filled.Flag, "Goal", state.goal.calorieGoal, MaterialTheme.colorScheme.onSurfaceVariant)
-                VDivider()
-                BudgetStat(Icons.Filled.Restaurant, "Eaten", n.caloriesConsumed, MaterialTheme.colorScheme.primary)
-                VDivider()
-                BudgetStat(Icons.Filled.LocalFireDepartment, "Burned", n.caloriesBurned, MaterialTheme.colorScheme.secondary)
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                MacroBar("Protein", n.protein, state.goal.proteinGoal, MaterialTheme.colorScheme.primary)
-                MacroBar("Carbs", n.carbs, state.goal.carbGoal, MaterialTheme.colorScheme.tertiary)
-                MacroBar("Fat", n.fat, state.goal.fatGoal, MaterialTheme.colorScheme.secondary)
-            }
-        }
-    }
-}
-
-@Composable
-private fun BudgetStat(icon: ImageVector, label: String, value: Int, tint: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-        Text("$value", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun VDivider() {
-    Box(
-        modifier = Modifier
-            .height(36.dp)
-            .width(1.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-    )
-}
-
-@Composable
-private fun NetCaloriesCard(state: HealthUiState) {
-    val n = state.nutrition
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                "Net calories",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                "${n.net} kcal",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                "Goal ${state.goal.calorieGoal} · eaten ${n.caloriesConsumed} − burned ${n.caloriesBurned}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
-}
 
 @Composable
 private fun WaterCard(glasses: Int, goal: Int, onChange: (Int) -> Unit) {
@@ -504,9 +619,10 @@ private fun ActivityCard(state: HealthUiState, onClick: () -> Unit) {
 }
 
 @Composable
-private fun WeightCard(state: HealthUiState) {
+private fun WeightCard(state: HealthUiState, onClick: () -> Unit) {
     val latest = state.weightEntries.maxByOrNull { it.date }
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -522,7 +638,7 @@ private fun WeightCard(state: HealthUiState) {
             Column(modifier = Modifier.padding(start = 14.dp).weight(1f)) {
                 Text("Weight", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Text(
-                    latest?.let { "Last logged ${it.date}" } ?: "Not logged yet",
+                    latest?.let { "Last logged ${it.date}" } ?: "Tap to log your weight",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

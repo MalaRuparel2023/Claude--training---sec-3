@@ -108,6 +108,7 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.config)
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.messaging)
     //Google Play Services for Google Sign-In
     implementation(libs.play.services.auth)
     //Serialization
@@ -167,6 +168,8 @@ kover {
                     // Framework-bound layers — exercised by instrumented tests, not JVM unit tests.
                     "com.mr.claudetraining.data.sync",
                     "com.mr.claudetraining.data.storage",
+                    // FCM service + token registration — require Firebase Messaging SDK.
+                    "com.mr.claudetraining.data.messaging",
                     // Firebase Remote Config / Crashlytics wrappers — require Firebase SDK.
                     "com.mr.claudetraining.data.config",
                     "com.mr.claudetraining.data.crash"

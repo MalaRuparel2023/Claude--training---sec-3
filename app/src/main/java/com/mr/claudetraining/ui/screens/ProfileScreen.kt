@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -52,7 +51,6 @@ fun ProfileScreen(
     onOpenChat: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenAccountSettings: () -> Unit = {},
-    onOpenConfig: () -> Unit = {},
     viewModel: YogaViewModel = hiltViewModel()
 ) {
     val profile = viewModel.uiState.collectAsState().value.profile
@@ -75,7 +73,6 @@ fun ProfileScreen(
                     SettingsItem(Icons.Filled.Notifications, "Notifications", onClick = onOpenNotifications)
                     SettingsItem(Icons.Filled.Favorite, "Favorites")
                     SettingsItem(Icons.Filled.Settings, "Account Settings", onClick = onOpenAccountSettings)
-                    SettingsItem(Icons.Filled.Tune, "Config (Dev/QA)", onClick = onOpenConfig)
                     SettingsItem(Icons.AutoMirrored.Filled.Logout, "Sign Out", onClick = onSignOut)
                 }
             }

@@ -219,8 +219,7 @@ private fun MainScaffold(
                     onSignOut = onSignOut,
                     onOpenChat = { navController.navigate(Route.ChatList.route) },
                     onOpenNotifications = { navController.navigate(Route.Notifications.route) },
-                    onOpenAccountSettings = { navController.navigate(Route.AccountSettings.route) },
-                    onOpenConfig = { navController.navigate(Route.Config.route) }
+                    onOpenAccountSettings = { navController.navigate(Route.AccountSettings.route) }
                 )
             }
             composable(Route.Notifications.route) {
@@ -229,7 +228,8 @@ private fun MainScaffold(
             composable(Route.AccountSettings.route) {
                 AccountSettingsScreen(
                     onBack = { navController.popBackStack() },
-                    onSignOut = onSignOut
+                    onSignOut = onSignOut,
+                    onOpenConfig = { navController.navigate(Route.Config.route) }
                 )
             }
             composable(Route.Config.route) {
