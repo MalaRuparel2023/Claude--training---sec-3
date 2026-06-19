@@ -1,28 +1,40 @@
 package com.mr.claudetraining.ui.screens
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.Pool
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.SportsGymnastics
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,11 +43,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -45,8 +60,12 @@ import com.mr.claudetraining.ui.components.AnimatedEntry
 import com.mr.claudetraining.ui.components.CalorieRing
 import com.mr.claudetraining.ui.components.MacroBar
 import com.mr.claudetraining.ui.components.SimpleTopBar
+import com.mr.claudetraining.ui.theme.FiteloGreen
+import com.mr.claudetraining.ui.theme.FiteloGreenDark
+import com.mr.claudetraining.ui.theme.FiteloOrange
 import com.mr.claudetraining.ui.viewmodel.HealthUiState
 import com.mr.claudetraining.ui.viewmodel.HealthViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun HealthDashboardScreen(
@@ -60,34 +79,255 @@ fun HealthDashboardScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(0.dp, 12.dp, 0.dp, 32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item { Header() }
-            item { AnimatedEntry(index = 1) { CalorieHeroCard(state) } }
-            item { AnimatedEntry(index = 2) { NetCaloriesCard(state) } }
-            item { AnimatedEntry(index = 3) { WaterCard(state.water.glasses, state.goal.waterGoalGlasses, viewModel::changeWater) } }
-            item { AnimatedEntry(index = 4) { ActivityCard(state, onClick = onOpenActivity) } }
-            item { AnimatedEntry(index = 5) { WeightCard(state) } }
+
+            // Upper: continuous, auto-advancing horizontal slider of featured sessions.
+            item { AnimatedEntry(index = 0) { FeaturedSlider() } }
+
+            item { Padded { AnimatedEntry(index = 1) { CalorieHeroCard(state) } } }
+
+            // Lower: horizontal yoga-pose row.
+            item {
+                AnimatedEntry(index = 2) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        SectionHeader("Yoga poses", "Flow at your pace")
+                        PoseRow(YOGA_POSES)
+                    }
+                }
+            }
+
+            // Lower: horizontal gym / cardio row.
+            item {
+                AnimatedEntry(index = 3) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        SectionHeader("Strength & cardio", "Build. Burn. Repeat.")
+                        PoseRow(WORKOUTS)
+                    }
+                }
+            }
+
+            item { Padded { AnimatedEntry(index = 4) { NetCaloriesCard(state) } } }
+            item { Padded { AnimatedEntry(index = 5) { WaterCard(state.water.glasses, state.goal.waterGoalGlasses, viewModel::changeWater) } } }
+            item { Padded { AnimatedEntry(index = 6) { ActivityCard(state, onClick = onOpenActivity) } } }
+            item { Padded { AnimatedEntry(index = 7) { WeightCard(state) } } }
         }
     }
 }
 
+/** Horizontal screen padding wrapper — the slider/rows bleed full-width, cards stay inset. */
+@Composable
+private fun Padded(content: @Composable () -> Unit) {
+    Box(modifier = Modifier.padding(horizontal = 16.dp)) { content() }
+}
+
 @Composable
 private fun Header() {
-    Column(modifier = Modifier.padding(horizontal = 4.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
         Text(
             "Today",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            "Your summary 💪",
+            "Let's move 🔥",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
     }
 }
+
+// ---------------------------------------------------------------------------
+// Featured slider (continuous auto-advance)
+// ---------------------------------------------------------------------------
+
+private data class Slide(
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val colors: List<Color>
+)
+
+private val SLIDES = listOf(
+    Slide("Morning Yoga Flow", "15 min · Beginner", Icons.Filled.SelfImprovement, listOf(FiteloGreen, FiteloGreenDark)),
+    Slide("HIIT Fat Burn", "20 min · Advanced", Icons.Filled.LocalFireDepartment, listOf(Color(0xFFFF922B), Color(0xFFE8590C))),
+    Slide("Full Body Strength", "30 min · Gym", Icons.Filled.FitnessCenter, listOf(Color(0xFF4C6EF5), Color(0xFF3B5BDB))),
+    Slide("Evening Stretch", "10 min · Relax", Icons.Filled.Spa, listOf(Color(0xFF9775FA), Color(0xFF7048E8)))
+)
+
+@Composable
+private fun FeaturedSlider() {
+    // Start in the middle of a huge virtual range so it scrolls "continuously" both ways.
+    val pageCount = Int.MAX_VALUE
+    val startPage = pageCount / 2
+    val pagerState = rememberPagerState(initialPage = startPage) { pageCount }
+
+    LaunchedEffect(pagerState) {
+        while (true) {
+            delay(3000)
+            pagerState.animateScrollToPage(
+                pagerState.currentPage + 1,
+                animationSpec = tween(700, easing = FastOutSlowInEasing)
+            )
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            pageSpacing = 12.dp
+        ) { page ->
+            SlideCard(SLIDES[page % SLIDES.size])
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            val active = pagerState.currentPage % SLIDES.size
+            SLIDES.indices.forEach { i ->
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .size(if (i == active) 9.dp else 7.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (i == active) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SlideCard(slide: Slide) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Brush.horizontalGradient(slide.colors))
+    ) {
+        Icon(
+            slide.icon,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.18f),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 8.dp)
+                .size(140.dp)
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(20.dp)
+        ) {
+            Text(
+                slide.subtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.9f),
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                slide.title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Horizontal pose / workout rows
+// ---------------------------------------------------------------------------
+
+private data class Pose(
+    val name: String,
+    val meta: String,
+    val icon: ImageVector,
+    val tint: Color
+)
+
+private val YOGA_POSES = listOf(
+    Pose("Warrior II", "Strength", Icons.Filled.SelfImprovement, FiteloGreen),
+    Pose("Tree Pose", "Balance", Icons.Filled.Spa, Color(0xFF7048E8)),
+    Pose("Cobra", "Flexibility", Icons.Filled.SelfImprovement, Color(0xFF4C6EF5)),
+    Pose("Downward Dog", "Full body", Icons.Filled.SportsGymnastics, FiteloGreenDark),
+    Pose("Child's Pose", "Recovery", Icons.Filled.Spa, FiteloOrange)
+)
+
+private val WORKOUTS = listOf(
+    Pose("Push Day", "Chest · Arms", Icons.Filled.FitnessCenter, Color(0xFF3B5BDB)),
+    Pose("Leg Day", "Quads · Glutes", Icons.Filled.SportsGymnastics, FiteloGreen),
+    Pose("Cardio HIIT", "Fat burn", Icons.AutoMirrored.Filled.DirectionsRun, FiteloOrange),
+    Pose("Core Blast", "Abs", Icons.Filled.FitnessCenter, Color(0xFF7048E8)),
+    Pose("Swim", "Endurance", Icons.Filled.Pool, Color(0xFF4C6EF5))
+)
+
+@Composable
+private fun SectionHeader(title: String, subtitle: String) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun PoseRow(poses: List<Pose>) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(poses) { pose -> PoseCard(pose) }
+    }
+}
+
+@Composable
+private fun PoseCard(pose: Pose) {
+    Card(
+        modifier = Modifier.width(140.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(pose.tint.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(pose.icon, contentDescription = null, tint = pose.tint, modifier = Modifier.size(28.dp))
+            }
+            Column {
+                Text(pose.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    pose.meta,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Existing health cards
+// ---------------------------------------------------------------------------
 
 @Composable
 private fun CalorieHeroCard(state: HealthUiState) {

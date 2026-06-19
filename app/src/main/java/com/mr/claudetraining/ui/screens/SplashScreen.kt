@@ -7,11 +7,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,8 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mr.claudetraining.ui.theme.BrandBlue
-import com.mr.claudetraining.ui.theme.BrandBlueDark
+import com.mr.claudetraining.ui.theme.FiteloGreen
+import com.mr.claudetraining.ui.theme.FiteloGreenDark
 
 @Composable
 fun SplashScreen() {
@@ -45,7 +46,7 @@ fun SplashScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(BrandBlue, BrandBlueDark))),
+            .background(Brush.verticalGradient(listOf(FiteloGreen, FiteloGreenDark))),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -62,21 +63,23 @@ fun SplashScreen() {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Chat,
+                    imageVector = Icons.Filled.SelfImprovement,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(56.dp)
+                    modifier = Modifier.size(60.dp)
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Healthify",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 34.sp
                 )
             }
             Text(
-                text = "SrteamChat",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 30.sp
-            )
-            Text(
-                text = "Connect. Chat. Stay healthy.",
-                color = Color.White.copy(alpha = 0.85f),
+                text = "Train. Stretch. Thrive.",
+                color = Color.White.copy(alpha = 0.9f),
                 fontWeight = FontWeight.Medium
             )
         }
