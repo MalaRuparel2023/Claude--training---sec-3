@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import com.mr.claudetraining.domain.model.ChannelSnapshot
 import com.mr.claudetraining.domain.model.ChatChannel
 import com.mr.claudetraining.domain.model.ChatConnectionState
+import com.mr.claudetraining.domain.model.ChatMessage
 
 interface ChatRepository {
     val connectionState: StateFlow<ChatConnectionState>
@@ -22,4 +23,10 @@ interface ChatRepository {
     fun startTyping(channelId: String)
     fun stopTyping(channelId: String)
     suspend fun addReaction(messageId: String, emoji: String)
+
+    /** Marks the channel read up to its latest message for the current user. */
+    fun markRead(channelId: String)
+
+    /** Full-text search over a channel's message history. */
+    suspend fun searchMessages(channelId: String, query: String): List<ChatMessage>
 }

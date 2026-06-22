@@ -21,4 +21,8 @@
     <string name="faq_placeholder">Lorem ipsum dolor sit amet consectetur. Sagittis egestas commodo ?</string>
     <string name="default_notification_channel_id">default_channel_v2</string>
     <string name="default_notification_channel_name">General</string>
+    <string name="messages_notification_channel_id">messages_channel</string>
+    <string name="messages_notification_channel_name">Messages</string>
+    <string name="job_alerts_notification_channel_id">job_alerts_channel</string>
+    <string name="job_alerts_notification_channel_name">Job Alerts</string>
 </resources>

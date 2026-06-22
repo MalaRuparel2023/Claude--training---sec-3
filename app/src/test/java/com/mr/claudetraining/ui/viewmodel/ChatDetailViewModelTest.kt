@@ -367,4 +367,134 @@ class ChatDetailViewModelTest {
 
         assertEquals("Failed to add reaction: null", vm.uiState.value.error)
     }
+
+    // --- markRead ---
+
+    @Test
+    fun `markRead delegates to repository with channelId`() = runTest(dispatcher) {
+        whenever(chatRepository.watchChannel("general")).thenReturn(flowOf(snapshot))
+
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.markRead()
+
+        verify(chatRepository).markRead("general")
+    }
+
+    @Test
+    fun `markRead is a no-op when channelId is empty`() = runTest(dispatcher) {
+        val vm = viewModel(channelId = null)
+        advanceUntilIdle()
+
+        vm.markRead()
+
+        verify(chatRepository, never()).markRead(any())
+    }
+
+    // --- read receipts ---
+
+    @Test
+    fun `lastSeenMessageId is the latest of my messages read by others`() = runTest(dispatcher) {
+        val mine1 = ChatMessage(id = "a", text = "hi", author = author, createdAt = 10, isMine = true)
+        val theirs = ChatMessage(id = "b", text = "yo", author = author, createdAt = 20, isMine = false)
+        val mine2 = ChatMessage(id = "c", text = "ok", author = author, createdAt = 30, isMine = true)
+        whenever(chatRepository.watchChannel("general")).thenReturn(
+            flowOf(
+                ChannelSnapshot(
+                    channelName = "General",
+                    messages = listOf(mine1, theirs, mine2),
+                    lastReadByOthers = 15
+                )
+            )
+        )
+
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        // Only mine1 (createdAt 10) is at/under the read watermark of 15.
+        assertEquals("a", vm.uiState.value.lastSeenMessageId)
+    }
+
+    @Test
+    fun `lastSeenMessageId is null when others have not read my messages`() = runTest(dispatcher) {
+        whenever(chatRepository.watchChannel("general")).thenReturn(flowOf(snapshot))
+
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.lastSeenMessageId)
+    }
+
+    // --- search ---
+
+    @Test
+    fun `openSearch then closeSearch toggles and clears search state`() = runTest(dispatcher) {
+        whenever(chatRepository.watchChannel("general")).thenReturn(flowOf(snapshot))
+        whenever(chatRepository.searchMessages(any(), any())).thenReturn(emptyList())
+
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.openSearch()
+        assertTrue(vm.uiState.value.isSearchActive)
+
+        vm.onSearchQueryChange("hello")
+        advanceUntilIdle()
+        vm.closeSearch()
+
+        val state = vm.uiState.value
+        assertFalse(state.isSearchActive)
+        assertEquals("", state.searchQuery)
+        assertTrue(state.searchResults.isEmpty())
+    }
+
+    @Test
+    fun `onSearchQueryChange queries repository and populates results`() = runTest(dispatcher) {
+        whenever(chatRepository.watchChannel("general")).thenReturn(flowOf(snapshot))
+        whenever(chatRepository.searchMessages("general", "hello"))
+            .thenReturn(listOf(messages[0]))
+
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onSearchQueryChange("hello")
+        advanceUntilIdle()
+
+        verify(chatRepository).searchMessages("general", "hello")
+        val state = vm.uiState.value
+        assertEquals(listOf(messages[0]), state.searchResults)
+        assertFalse(state.isSearching)
+    }
+
+    @Test
+    fun `blank search query clears results without querying`() = runTest(dispatcher) {
+        whenever(chatRepository.watchChannel("general")).thenReturn(flowOf(snapshot))
+
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onSearchQueryChange("   ")
+        advanceUntilIdle()
+
+        verify(chatRepository, never()).searchMessages(any(), any())
+        assertTrue(vm.uiState.value.searchResults.isEmpty())
+    }
+
+    @Test
+    fun `search failure surfaces error and leaves results empty`() = runTest(dispatcher) {
+        whenever(chatRepository.watchChannel("general")).thenReturn(flowOf(snapshot))
+        chatRepository.stub {
+            onBlocking { searchMessages(any(), any()) } doThrow RuntimeException("index down")
+        }
+
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onSearchQueryChange("hello")
+        advanceUntilIdle()
+
+        assertEquals("Search failed: index down", vm.uiState.value.error)
+        assertTrue(vm.uiState.value.searchResults.isEmpty())
+    }
 }

@@ -133,6 +133,7 @@ dependencies {
     implementation(libs.coil.compose)
     //Lifecycle
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.process)
     //Activity
     implementation(libs.androidx.activity.compose)
     //Testing

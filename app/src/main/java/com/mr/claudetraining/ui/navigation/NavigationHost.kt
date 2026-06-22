@@ -28,6 +28,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -95,6 +96,7 @@ fun SrteamChatNavigation(
     connectionState: ChatConnectionState,
     onSignOut: () -> Unit = {},
     onSignIn: () -> Unit = {},
+    deepLinkRoute: String? = null,
     navController: NavHostController = rememberNavController()
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -112,7 +114,8 @@ fun SrteamChatNavigation(
                 is ChatConnectionState.SignedOut -> SignedOutScreen(onSignIn = onSignIn)
                 else -> MainScaffold(
                     navController = navController,
-                    onSignOut = onSignOut
+                    onSignOut = onSignOut,
+                    deepLinkRoute = deepLinkRoute
                 )
             }
         }
@@ -150,11 +153,17 @@ fun SrteamChatNavigation(
 @Composable
 private fun MainScaffold(
     navController: NavHostController,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    deepLinkRoute: String? = null
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = bottomNavItems.any { it.route == currentRoute }
+
+    // A push-notification tap delivers its target route here; navigate once it arrives.
+    LaunchedEffect(deepLinkRoute) {
+        deepLinkRoute?.let { navController.navigate(it) { launchSingleTop = true } }
+    }
 
     Scaffold(
         // Let each screen's blue app bar draw under the transparent status bar;

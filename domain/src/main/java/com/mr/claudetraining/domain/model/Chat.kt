@@ -36,6 +36,13 @@ data class ChannelSnapshot(
     val channelName: String,
     val messages: List<ChatMessage> = emptyList(),
     val typingUsers: List<ChatUser> = emptyList(),
+    /** Members of the channel, carrying live online/offline presence. */
+    val members: List<ChatUser> = emptyList(),
+    /**
+     * Latest read timestamp across all *other* members. A message of mine is
+     * considered "seen" when its [ChatMessage.createdAt] is at or before this value.
+     */
+    val lastReadByOthers: Long = 0,
     val isDeleted: Boolean = false
 )
 

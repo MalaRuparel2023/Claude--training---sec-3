@@ -12,8 +12,10 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,11 +36,15 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -79,13 +86,22 @@ fun ChatDetailScreen(
 ) {
     val uiState = viewModel.uiState.collectAsState().value
 
+    // Mark the channel read on open and whenever a new message arrives while watching.
+    LaunchedEffect(channelId, uiState.messages.size) {
+        viewModel.markRead()
+    }
+
     ChatDetailContent(
         uiState = uiState,
         onBack = onBack,
         onRetry = { viewModel.retry() },
         onSendMessage = { text -> viewModel.sendMessage(text) },
         onTypingStart = { viewModel.startTyping() },
-        onTypingStop = { viewModel.stopTyping() }
+        onTypingStop = { viewModel.stopTyping() },
+        onAddReaction = { messageId, emoji -> viewModel.addReaction(messageId, emoji) },
+        onOpenSearch = { viewModel.openSearch() },
+        onCloseSearch = { viewModel.closeSearch() },
+        onSearchQueryChange = { query -> viewModel.onSearchQueryChange(query) }
     )
 }
 
@@ -96,7 +112,11 @@ fun ChatDetailContent(
     onRetry: () -> Unit,
     onSendMessage: (String) -> Unit,
     onTypingStart: () -> Unit,
-    onTypingStop: () -> Unit
+    onTypingStop: () -> Unit,
+    onAddReaction: (String, String) -> Unit = { _, _ -> },
+    onOpenSearch: () -> Unit = {},
+    onCloseSearch: () -> Unit = {},
+    onSearchQueryChange: (String) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -112,12 +132,32 @@ fun ChatDetailContent(
                         contentDescription = "Back to chats"
                     )
                 }
+            },
+            actions = {
+                IconButton(onClick = onOpenSearch) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = "Search messages"
+                    )
+                }
             }
         )
 
-        MoreInfoSection()
+        if (uiState.isSearchActive) {
+            MessageSearchBar(
+                query = uiState.searchQuery,
+                onQueryChange = onSearchQueryChange,
+                onClose = onCloseSearch
+            )
+        } else {
+            MoreInfoSection()
+        }
 
         when {
+            uiState.isSearchActive -> SearchResultsContent(
+                uiState = uiState,
+                modifier = Modifier.weight(1f)
+            )
             uiState.isLoading -> ChatLoadingState()
             uiState.error != null -> ChatErrorState(
                 error = uiState.error,
@@ -127,6 +167,8 @@ fun ChatDetailContent(
                 ChatMessagesContent(
                     messages = uiState.messages,
                     typingUsers = uiState.typingUsers,
+                    lastSeenMessageId = uiState.lastSeenMessageId,
+                    onAddReaction = onAddReaction,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -215,13 +257,18 @@ private fun MoreInfoSection() {
     }
 }
 
+private val reactionEmojis = listOf("👍", "❤️", "😂", "😮", "😢", "🎉")
+
 @Composable
 private fun ChatMessagesContent(
     messages: List<ChatMessage>,
     typingUsers: List<ChatUser>,
+    lastSeenMessageId: String?,
+    onAddReaction: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    var reactionTargetId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -242,7 +289,11 @@ private fun ChatMessagesContent(
             items = messages,
             key = { it.id }
         ) { message ->
-            MessageBubble(message)
+            MessageBubble(
+                message = message,
+                showSeen = message.id == lastSeenMessageId,
+                onLongPress = { reactionTargetId = message.id }
+            )
         }
 
         if (typingUsers.isNotEmpty()) {
@@ -251,10 +302,60 @@ private fun ChatMessagesContent(
             }
         }
     }
+
+    reactionTargetId?.let { targetId ->
+        ReactionPicker(
+            onDismiss = { reactionTargetId = null },
+            onPick = { emoji ->
+                onAddReaction(targetId, emoji)
+                reactionTargetId = null
+            }
+        )
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MessageBubble(message: ChatMessage) {
+private fun ReactionPicker(
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            Text(
+                text = "React",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                reactionEmojis.forEach { emoji ->
+                    Text(
+                        text = emoji,
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable { onPick(emoji) }
+                            .padding(8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MessageBubble(
+    message: ChatMessage,
+    showSeen: Boolean = false,
+    onLongPress: () -> Unit = {}
+) {
     val bubbleShape = if (message.isMine) {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp)
     } else {
@@ -285,23 +386,34 @@ private fun MessageBubble(message: ChatMessage) {
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             if (!message.isMine) {
-                Text(
-                    text = message.author.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.padding(start = 4.dp)
-                )
+                ) {
+                    PresenceDot(isOnline = message.author.isOnline)
+                    Text(
+                        text = message.author.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Box(
                 modifier = Modifier
+                    .clip(bubbleShape)
                     .background(
                         color = if (message.isMine)
                             MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.surface,
                         shape = bubbleShape
+                    )
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = onLongPress
                     )
                     .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
@@ -334,14 +446,40 @@ private fun MessageBubble(message: ChatMessage) {
                 }
             }
 
-            Text(
-                text = formatMessageTime(message.createdAt),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.padding(horizontal = 4.dp)
-            )
+            ) {
+                Text(
+                    text = formatMessageTime(message.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (showSeen) {
+                    Text(
+                        text = "· Seen",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun PresenceDot(isOnline: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .clip(CircleShape)
+            .background(
+                if (isOnline) Color(0xFF4CAF50)
+                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            )
+    )
 }
 
 @Composable
@@ -496,6 +634,144 @@ private fun MessageInput(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun MessageSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                if (query.isEmpty()) {
+                    Text(
+                        text = "Search this conversation…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
+                )
+            }
+            IconButton(onClick = onClose) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close search",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResultsContent(
+    uiState: ChatDetailUiState,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        when {
+            uiState.isSearching -> CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+            uiState.searchQuery.isBlank() -> SearchHint("Type to search messages")
+            uiState.searchResults.isEmpty() -> SearchHint(
+                "No messages match \"${uiState.searchQuery}\""
+            )
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = 12.dp,
+                    vertical = 8.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                items(items = uiState.searchResults, key = { it.id }) { message ->
+                    SearchResultRow(message)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResultRow(message: ChatMessage) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AsyncImage(
+            model = message.author.image.ifEmpty { "https://via.placeholder.com/32" },
+            contentDescription = message.author.name,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = message.author.name.ifEmpty { "Unknown" },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = formatMessageTime(message.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = message.text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchHint(text: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(24.dp)
+        )
     }
 }
 

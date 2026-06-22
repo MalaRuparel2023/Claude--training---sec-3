@@ -22,9 +22,9 @@ import javax.inject.Singleton
 @Singleton
 class FakeChatRepository @Inject constructor() : ChatRepository {
 
-    private val me = ChatUser(id = "mock-me", name = "You")
-    private val alice = ChatUser(id = "alice", name = "Alice")
-    private val bob = ChatUser(id = "bob", name = "Bob")
+    private val me = ChatUser(id = "mock-me", name = "You", isOnline = true)
+    private val alice = ChatUser(id = "alice", name = "Alice", isOnline = true)
+    private val bob = ChatUser(id = "bob", name = "Bob", isOnline = false)
 
     private val now = System.currentTimeMillis()
 
@@ -67,7 +67,13 @@ class FakeChatRepository @Inject constructor() : ChatRepository {
     override fun watchChannel(channelId: String): Flow<ChannelSnapshot> {
         val name = channels.value.firstOrNull { it.id == channelId }?.name ?: channelId
         return messagesFlow(channelId).map { messages ->
-            ChannelSnapshot(channelName = name, messages = messages)
+            ChannelSnapshot(
+                channelName = name,
+                messages = messages,
+                members = listOf(me, alice, bob),
+                // Everything sent so far has already been read by the others.
+                lastReadByOthers = System.currentTimeMillis()
+            )
         }
     }
 
@@ -99,6 +105,15 @@ class FakeChatRepository @Inject constructor() : ChatRepository {
                     message
                 }
             }
+        }
+    }
+
+    override fun markRead(channelId: String) = Unit
+
+    override suspend fun searchMessages(channelId: String, query: String): List<ChatMessage> {
+        if (query.isBlank()) return emptyList()
+        return messagesFlow(channelId).value.filter {
+            it.text.contains(query, ignoreCase = true)
         }
     }
 
