@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -49,6 +50,7 @@ import com.mr.claudetraining.ui.screens.ChatListScreen
 import com.mr.claudetraining.ui.screens.DiaryScreen
 import com.mr.claudetraining.ui.screens.NotificationsScreen
 import com.mr.claudetraining.ui.screens.HealthDashboardScreen
+import com.mr.claudetraining.ui.screens.JobListScreen
 import com.mr.claudetraining.ui.screens.ProfileScreen
 import com.mr.claudetraining.ui.screens.ProgressScreen
 import com.mr.claudetraining.domain.model.ChatConnectionState
@@ -63,6 +65,7 @@ import com.mr.claudetraining.ui.viewmodel.FeatureFlagsViewModel
 
 sealed class Route(val route: String) {
     object Home : Route("home")
+    object Jobs : Route("jobs")
     object Diary : Route("diary")
     object Workout : Route("workout")
     object Progress : Route("progress")
@@ -86,6 +89,7 @@ private data class BottomNavItem(
 
 private val bottomNavItems = listOf(
     BottomNavItem(Route.Home.route, "Home", Icons.Filled.Home),
+    BottomNavItem(Route.Jobs.route, "Jobs", Icons.Filled.Work),
     BottomNavItem(Route.Diary.route, "Diary", Icons.Filled.Restaurant),
     BottomNavItem(Route.Workout.route, "Workout", Icons.Filled.FitnessCenter),
     BottomNavItem(Route.Progress.route, "Progress", Icons.Filled.Insights),
@@ -221,6 +225,10 @@ private fun MainScaffold(
                 } else {
                     ActivityDetailScreen(onBack = { navController.popBackStack() })
                 }
+            }
+            composable(Route.Jobs.route) {
+                // onOpenJob wired to the detail screen in the follow-up PR.
+                JobListScreen()
             }
             composable(Route.Diary.route) { DiaryScreen() }
             composable(Route.Workout.route) {
