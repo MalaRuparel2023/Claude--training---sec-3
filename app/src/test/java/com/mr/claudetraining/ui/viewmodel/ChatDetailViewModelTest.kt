@@ -29,13 +29,16 @@ import org.mockito.kotlin.whenever
 import com.mr.claudetraining.domain.model.ChannelSnapshot
 import com.mr.claudetraining.domain.model.ChatMessage
 import com.mr.claudetraining.domain.model.ChatUser
+import com.mr.claudetraining.domain.repository.AnalyticsLogger
 import com.mr.claudetraining.domain.repository.ChatRepository
+import com.mr.claudetraining.domain.repository.NoOpPerformanceTracer
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatDetailViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private val chatRepository: ChatRepository = mock()
+    private val analytics: AnalyticsLogger = mock()
 
     private val author = ChatUser(id = "u1", name = "Alice")
     private val messages = listOf(
@@ -63,7 +66,7 @@ class ChatDetailViewModelTest {
         val handle = SavedStateHandle().apply {
             if (channelId != null) set("channelId", channelId)
         }
-        return ChatDetailViewModel(chatRepository, handle)
+        return ChatDetailViewModel(chatRepository, analytics, NoOpPerformanceTracer, handle)
     }
 
     // --- Initial state ---

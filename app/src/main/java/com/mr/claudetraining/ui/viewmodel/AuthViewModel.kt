@@ -13,7 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.mr.claudetraining.domain.model.AnalyticsEvent
 import com.mr.claudetraining.domain.model.Response
+import com.mr.claudetraining.domain.repository.AnalyticsLogger
 import com.mr.claudetraining.domain.repository.AuthRepository
 import javax.inject.Inject
 
@@ -26,7 +28,8 @@ sealed interface AuthGateState {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val googleSignInClient: GoogleSignInClient
+    private val googleSignInClient: GoogleSignInClient,
+    private val analytics: AnalyticsLogger
 ) : ViewModel() {
 
     private val _gateState = MutableStateFlow<AuthGateState>(AuthGateState.Loading)
@@ -60,13 +63,18 @@ class AuthViewModel @Inject constructor(
         clearError()
     }
 
-    fun signIn() = submit { authRepository.signInWithEmailAndPassword(email.trim(), password) }
+    fun signIn() = submit(AnalyticsEvent.Login("email")) {
+        authRepository.signInWithEmailAndPassword(email.trim(), password)
+    }
 
-    fun signUp() = submit { authRepository.signUpWithEmailAndPassword(email.trim(), password) }
+    fun signUp() = submit(AnalyticsEvent.SignUp("email")) {
+        authRepository.signUpWithEmailAndPassword(email.trim(), password)
+    }
 
     fun googleSignInIntent(): Intent = googleSignInClient.signInIntent
 
-    fun signInWithGoogle(idToken: String) = runAuth { authRepository.signInWithGoogle(idToken) }
+    fun signInWithGoogle(idToken: String) =
+        runAuth(AnalyticsEvent.Login("google")) { authRepository.signInWithGoogle(idToken) }
 
     fun onGoogleSignInFailed(message: String) {
         _formResponse.value = Response.Failure(Exception(message))
@@ -75,21 +83,26 @@ class AuthViewModel @Inject constructor(
     fun signOut() {
         authRepository.signOut()
         googleSignInClient.signOut()
+        analytics.log(AnalyticsEvent.SignOut)
+        analytics.setUserId(null)
     }
 
-    private fun submit(action: suspend () -> Unit) {
+    private fun submit(successEvent: AnalyticsEvent, action: suspend () -> Unit) {
         if (email.isBlank() || password.isBlank()) {
             _formResponse.value = Response.Failure(IllegalArgumentException("Enter your email and password"))
             return
         }
-        runAuth(action)
+        runAuth(successEvent, action)
     }
 
-    private fun runAuth(action: suspend () -> Unit) {
+    private fun runAuth(successEvent: AnalyticsEvent, action: suspend () -> Unit) {
         viewModelScope.launch {
             _formResponse.value = Response.Loading
             runCatching { action() }
-                .onSuccess { _formResponse.value = Response.Success(Unit) }
+                .onSuccess {
+                    analytics.log(successEvent)
+                    _formResponse.value = Response.Success(Unit)
+                }
                 .onFailure { e -> _formResponse.value = Response.Failure(e as? Exception ?: Exception(e.message)) }
         }
     }

@@ -11,9 +11,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import com.mr.claudetraining.domain.model.AnalyticsEvent
 import com.mr.claudetraining.domain.model.ChatMessage
 import com.mr.claudetraining.domain.model.ChatUser
+import com.mr.claudetraining.domain.repository.AnalyticsLogger
 import com.mr.claudetraining.domain.repository.ChatRepository
+import com.mr.claudetraining.domain.repository.PerformanceTracer
 import javax.inject.Inject
 
 data class ChatDetailUiState(
@@ -38,6 +41,8 @@ data class ChatDetailUiState(
 @HiltViewModel
 class ChatDetailViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
+    private val analytics: AnalyticsLogger,
+    private val performance: PerformanceTracer,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -82,7 +87,13 @@ class ChatDetailViewModel @Inject constructor(
     fun sendMessage(text: String) {
         if (text.isBlank() || channelId.isEmpty()) return
         viewModelScope.launch {
-            runCatching { chatRepository.sendMessage(channelId, text) }
+            // Trace measures end-to-end send latency (request → SDK ack); see Performance console.
+            runCatching {
+                performance.trace(PerformanceTracer.CHAT_MESSAGE_SEND) {
+                    chatRepository.sendMessage(channelId, text)
+                }
+            }
+                .onSuccess { analytics.log(AnalyticsEvent.SendMessage(channelId)) }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         error = "Failed to send message: ${e.message}"
@@ -98,6 +109,7 @@ class ChatDetailViewModel @Inject constructor(
     fun addReaction(messageId: String, emoji: String) {
         viewModelScope.launch {
             runCatching { chatRepository.addReaction(messageId, emoji) }
+                .onSuccess { analytics.log(AnalyticsEvent.AddReaction(emoji)) }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         error = "Failed to add reaction: ${e.message}"

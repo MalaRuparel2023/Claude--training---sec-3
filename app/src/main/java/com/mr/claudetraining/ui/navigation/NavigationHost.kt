@@ -58,6 +58,7 @@ import com.mr.claudetraining.ui.screens.NewActivityDetailScreen
 import com.mr.claudetraining.ui.screens.WorkoutScreen
 import com.mr.claudetraining.ui.screens.YogaScreen
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mr.claudetraining.ui.viewmodel.AnalyticsViewModel
 import com.mr.claudetraining.ui.viewmodel.FeatureFlagsViewModel
 
 sealed class Route(val route: String) {
@@ -159,6 +160,12 @@ private fun MainScaffold(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = bottomNavItems.any { it.route == currentRoute }
+
+    // Manual screen_view tracking — fires once per destination change (route template name).
+    val analyticsViewModel: AnalyticsViewModel = hiltViewModel()
+    LaunchedEffect(currentRoute) {
+        currentRoute?.let { analyticsViewModel.logScreenView(it) }
+    }
 
     // A push-notification tap delivers its target route here; navigate once it arrives.
     LaunchedEffect(deepLinkRoute) {
