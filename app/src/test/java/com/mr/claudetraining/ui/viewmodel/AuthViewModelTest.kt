@@ -25,6 +25,7 @@ import org.mockito.kotlin.stub
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import com.mr.claudetraining.domain.model.Response
+import com.mr.claudetraining.domain.repository.AnalyticsLogger
 import com.mr.claudetraining.domain.repository.AuthRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -33,6 +34,7 @@ class AuthViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val authRepository: AuthRepository = mock()
     private val googleSignInClient: GoogleSignInClient = mock()
+    private val analytics: AnalyticsLogger = mock()
 
     @Before
     fun setUp() {
@@ -44,7 +46,7 @@ class AuthViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = AuthViewModel(authRepository, googleSignInClient)
+    private fun viewModel() = AuthViewModel(authRepository, googleSignInClient, analytics)
 
     // Most tests don't care about the auth-state collection started in init, but the
     // init block always subscribes to authState(); give it a default so construction

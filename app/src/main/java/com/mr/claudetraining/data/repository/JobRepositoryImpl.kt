@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.mr.claudetraining.data.local.JobDao
@@ -20,13 +23,16 @@ import com.mr.claudetraining.data.model.toDomain
 import com.mr.claudetraining.domain.model.EnhancedJob
 import com.mr.claudetraining.domain.model.Job
 import com.mr.claudetraining.domain.repository.JobRepository
+import com.mr.claudetraining.domain.repository.PerfTrace
+import com.mr.claudetraining.domain.repository.PerformanceTracer
 import javax.inject.Inject
 
 private const val TAG = "JobRepository"
 
 class JobRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val jobDao: JobDao
+    private val jobDao: JobDao,
+    private val performance: PerformanceTracer
 ) : JobRepository {
 
     private val jobsRef = firestore.collection("jobs")
@@ -46,7 +52,19 @@ class JobRepositoryImpl @Inject constructor(
                 .collect { jobs -> jobDao.replaceAll(jobs.map { it.toEntity(System.currentTimeMillis()) }) }
         }
         jobDao.observeAll().collect { rows -> send(rows.map { it.entityToDomain() }) }
-    }.distinctUntilChanged()
+    }.distinctUntilChanged().traceLoad(PerformanceTracer.JOB_LIST_LOAD)
+
+    // Measures subscription → first emitted list (cache or network, whichever lands first).
+    private fun <T> Flow<T>.traceLoad(name: String): Flow<T> {
+        var trace: PerfTrace? = null
+        return onStart { trace = performance.newTrace(name).also { it.start() } }
+            .onEach {
+                trace?.let { it.stop(); trace = null }
+            }
+            // Safety net: stop the trace if the flow completes, errors, or is cancelled
+            // before any emission — otherwise the span leaks and Firebase drops it.
+            .onCompletion { trace?.stop() }
+    }
 
     override fun observeJob(id: String): Flow<Job?> = channelFlow {
         launch {
