@@ -74,7 +74,7 @@ NPEs, architectural violations, and missing tests; emits severity-ranked finding
 refactors) → post to the PR → human reviews independently and fills the comparison table → deltas
 feed back into the checklist. A PR merges only after `:app:lintMockDebug`,
 `:app:testMockDebugUnitTest`, `:app:koverVerifyMockDebug` (≥80 %), and the `check-architecture`
-skill pass. Prefer the `code-review-graph` MCP tools over whole-file reads when reviewing.
+skill pass.
 
 ## Feature areas
 
