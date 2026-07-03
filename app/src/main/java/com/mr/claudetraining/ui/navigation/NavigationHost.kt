@@ -51,6 +51,7 @@ import com.mr.claudetraining.ui.screens.DiaryScreen
 import com.mr.claudetraining.ui.screens.NotificationsScreen
 import com.mr.claudetraining.ui.screens.HealthDashboardScreen
 import com.mr.claudetraining.ui.screens.ProfileScreen
+import com.mr.claudetraining.ui.screens.WorkoutSessionCreateScreen
 import com.mr.claudetraining.ui.screens.WorkoutSessionDetailScreen
 import com.mr.claudetraining.ui.screens.WorkoutSessionListScreen
 import com.mr.claudetraining.ui.screens.ProgressScreen
@@ -67,6 +68,7 @@ import com.mr.claudetraining.ui.viewmodel.FeatureFlagsViewModel
 sealed class Route(val route: String) {
     object Home : Route("home")
     object WorkoutSessions : Route("workout_sessions")
+    object WorkoutSessionCreate : Route("workout_session_create")
     object WorkoutSessionDetail : Route("workout_session_detail/{sessionId}") {
         fun createRoute(sessionId: String) = "workout_session_detail/$sessionId"
     }
@@ -232,7 +234,14 @@ private fun MainScaffold(
             }
             composable(Route.WorkoutSessions.route) {
                 WorkoutSessionListScreen(
-                    onOpenSession = { sessionId -> navController.navigate(Route.WorkoutSessionDetail.createRoute(sessionId)) }
+                    onOpenSession = { sessionId -> navController.navigate(Route.WorkoutSessionDetail.createRoute(sessionId)) },
+                    onCreateSession = { navController.navigate(Route.WorkoutSessionCreate.route) }
+                )
+            }
+            composable(Route.WorkoutSessionCreate.route) {
+                WorkoutSessionCreateScreen(
+                    onSuccess = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(

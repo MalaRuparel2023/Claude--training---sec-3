@@ -14,8 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -37,11 +39,23 @@ import com.mr.claudetraining.ui.viewmodel.WorkoutSessionListViewModel
 @Composable
 fun WorkoutSessionListScreen(
     onOpenSession: (String) -> Unit = {},
+    onCreateSession: () -> Unit = {},
     viewModel: WorkoutSessionListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    androidx.compose.material3.Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = onCreateSession) {
+                Icon(Icons.Filled.Add, contentDescription = "Create session")
+            }
+        }
+    ) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(innerPadding)) {
         SimpleTopBar(title = "Workout Sessions")
 
         Row(
@@ -78,6 +92,7 @@ fun WorkoutSessionListScreen(
                 }
             }
         }
+    }
     }
 }
 
