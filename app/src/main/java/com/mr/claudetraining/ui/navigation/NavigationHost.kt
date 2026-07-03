@@ -50,8 +50,11 @@ import com.mr.claudetraining.ui.screens.ChatListScreen
 import com.mr.claudetraining.ui.screens.DiaryScreen
 import com.mr.claudetraining.ui.screens.NotificationsScreen
 import com.mr.claudetraining.ui.screens.HealthDashboardScreen
+import com.mr.claudetraining.ui.screens.JobDetailScreen
 import com.mr.claudetraining.ui.screens.JobListScreen
+import com.mr.claudetraining.ui.screens.JobSearchScreen
 import com.mr.claudetraining.ui.screens.ProfileScreen
+import com.mr.claudetraining.ui.screens.SavedJobsScreen
 import com.mr.claudetraining.ui.screens.ProgressScreen
 import com.mr.claudetraining.domain.model.ChatConnectionState
 import com.mr.claudetraining.ui.screens.ActivityDetailScreen
@@ -66,6 +69,11 @@ import com.mr.claudetraining.ui.viewmodel.FeatureFlagsViewModel
 sealed class Route(val route: String) {
     object Home : Route("home")
     object Jobs : Route("jobs")
+    object JobDetail : Route("job_detail/{jobId}") {
+        fun createRoute(jobId: String) = "job_detail/$jobId"
+    }
+    object SavedJobs : Route("saved_jobs")
+    object JobSearch : Route("job_search")
     object Diary : Route("diary")
     object Workout : Route("workout")
     object Progress : Route("progress")
@@ -227,8 +235,29 @@ private fun MainScaffold(
                 }
             }
             composable(Route.Jobs.route) {
-                // onOpenJob wired to the detail screen in the follow-up PR.
-                JobListScreen()
+                JobListScreen(
+                    onOpenJob = { jobId -> navController.navigate(Route.JobDetail.createRoute(jobId)) },
+                    onOpenSaved = { navController.navigate(Route.SavedJobs.route) },
+                    onOpenSearch = { navController.navigate(Route.JobSearch.route) }
+                )
+            }
+            composable(
+                route = Route.JobDetail.route,
+                arguments = listOf(navArgument("jobId") { type = NavType.StringType })
+            ) {
+                JobDetailScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Route.SavedJobs.route) {
+                SavedJobsScreen(
+                    onOpenJob = { jobId -> navController.navigate(Route.JobDetail.createRoute(jobId)) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Route.JobSearch.route) {
+                JobSearchScreen(
+                    onOpenJob = { jobId -> navController.navigate(Route.JobDetail.createRoute(jobId)) },
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Route.Diary.route) { DiaryScreen() }
             composable(Route.Workout.route) {

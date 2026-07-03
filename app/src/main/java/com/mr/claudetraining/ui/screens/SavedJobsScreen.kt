@@ -9,13 +9,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bookmarks
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,18 +32,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.mr.claudetraining.ui.components.AnimatedEntry
 import com.mr.claudetraining.ui.components.JobCard
 import com.mr.claudetraining.ui.components.SimpleTopBar
-import com.mr.claudetraining.ui.viewmodel.JobListViewModel
-
-// Cap content width so the list doesn't stretch edge-to-edge on tablets/landscape.
-private val MaxContentWidth = 640.dp
+import com.mr.claudetraining.ui.viewmodel.SavedJobsViewModel
 
 @Composable
-fun JobListScreen(
+fun SavedJobsScreen(
     onOpenJob: (String) -> Unit = {},
-    onOpenSaved: () -> Unit = {},
-    onOpenSearch: () -> Unit = {},
     onBack: () -> Unit = {},
-    viewModel: JobListViewModel = hiltViewModel()
+    viewModel: SavedJobsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -53,35 +48,38 @@ fun JobListScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         SimpleTopBar(
-            title = "Jobs",
+            title = "Saved",
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-            },
-            actions = {
-                IconButton(onClick = onOpenSearch) {
-                    Icon(Icons.Filled.Search, contentDescription = "Search")
-                }
-                IconButton(onClick = onOpenSaved) {
-                    Icon(Icons.Filled.Bookmarks, contentDescription = "Saved jobs")
-                }
             }
         )
         when {
-            state.isLoading -> CenterBox { CircularProgressIndicator() }
-            state.jobs.isEmpty() -> CenterBox {
-                Text(
-                    text = state.error?.let { "Couldn't load jobs" } ?: "No jobs right now",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+            state.isLoading -> Center { CircularProgressIndicator() }
+            state.jobs.isEmpty() -> Center {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.BookmarkBorder,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "No saved jobs yet — tap the bookmark on any job.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
             else -> BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     modifier = Modifier
-                        .widthIn(max = MaxContentWidth)
+                        .widthIn(max = 640.dp)
                         .fillMaxWidth()
                         .align(Alignment.TopCenter),
                     contentPadding = PaddingValues(16.dp),
@@ -103,11 +101,9 @@ fun JobListScreen(
 }
 
 @Composable
-private fun CenterBox(content: @Composable () -> Unit) {
+private fun Center(content: @Composable () -> Unit) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         contentAlignment = Alignment.Center
     ) { content() }
 }
