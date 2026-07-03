@@ -12,12 +12,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.mr.claudetraining.data.local.DraftStatus
-import com.mr.claudetraining.data.local.JobDao
 import com.mr.claudetraining.data.local.MessageDraftDao
 import com.mr.claudetraining.data.local.MessageDraftEntity
 import com.mr.claudetraining.data.local.toEntity
 import com.mr.claudetraining.domain.repository.ChatRepository
-import com.mr.claudetraining.domain.repository.JobRepository
+import com.mr.claudetraining.domain.repository.WorkoutSessionRepository
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,9 +40,8 @@ sealed interface SyncStatus {
 @Singleton
 class SyncManager @Inject constructor(
     private val networkMonitor: NetworkMonitor,
-    private val jobRepository: JobRepository,
+    private val workoutSessionRepository: WorkoutSessionRepository,
     private val chatRepository: ChatRepository,
-    private val jobDao: JobDao,
     private val draftDao: MessageDraftDao
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -79,7 +77,7 @@ class SyncManager @Inject constructor(
         _status.value = SyncStatus.Syncing
         _status.value = runCatching {
             pushDrafts()
-            pullJobs()
+            // Job sync removed - WorkoutSessions handled by WorkoutSessionRepository
         }.fold(
             onSuccess = { SyncStatus.Idle },
             onFailure = { error ->
@@ -103,11 +101,6 @@ class SyncManager @Inject constructor(
                     draftDao.markFailed(draft.localId, error.message)
                 }
         }
-    }
-
-    private suspend fun pullJobs() {
-        val now = System.currentTimeMillis()
-        jobDao.replaceAll(jobRepository.fetchJobs().map { it.toEntity(now) })
     }
 
     private companion object {
