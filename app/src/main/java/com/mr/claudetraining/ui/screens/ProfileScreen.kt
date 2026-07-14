@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -51,6 +52,7 @@ fun ProfileScreen(
     onOpenChat: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenAccountSettings: () -> Unit = {},
+    onOpenTasty: () -> Unit = {},
     viewModel: YogaViewModel = hiltViewModel()
 ) {
     val profile = viewModel.uiState.collectAsState().value.profile
@@ -72,6 +74,7 @@ fun ProfileScreen(
                     SettingsItem(Icons.AutoMirrored.Filled.Chat, "Chat", onClick = onOpenChat)
                     SettingsItem(Icons.Filled.Notifications, "Notifications", onClick = onOpenNotifications)
                     SettingsItem(Icons.Filled.Favorite, "Favorites")
+                    SettingsItem(Icons.Filled.Restaurant, "Tasty Menu", onClick = onOpenTasty)
                     SettingsItem(Icons.Filled.Settings, "Account Settings", onClick = onOpenAccountSettings)
                     SettingsItem(Icons.AutoMirrored.Filled.Logout, "Sign Out", onClick = onSignOut)
                 }

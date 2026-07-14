@@ -61,6 +61,7 @@ import com.mr.claudetraining.ui.screens.ConfigScreen
 import com.mr.claudetraining.ui.screens.NewActivityDetailScreen
 import com.mr.claudetraining.ui.screens.WorkoutScreen
 import com.mr.claudetraining.ui.screens.YogaScreen
+import com.mr.claudetraining.ui.screens.TastyDashboardScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mr.claudetraining.ui.viewmodel.AnalyticsViewModel
 import com.mr.claudetraining.ui.viewmodel.FeatureFlagsViewModel
@@ -85,6 +86,7 @@ sealed class Route(val route: String) {
     object WorkoutLog : Route("workout_log")
     object ActivityDetail : Route("activity_detail")
     object Config : Route("config")
+    object Tasty : Route("tasty_dashboard")
 }
 
 private data class BottomNavItem(
@@ -263,8 +265,12 @@ private fun MainScaffold(
                     onSignOut = onSignOut,
                     onOpenChat = { navController.navigate(Route.ChatList.route) },
                     onOpenNotifications = { navController.navigate(Route.Notifications.route) },
-                    onOpenAccountSettings = { navController.navigate(Route.AccountSettings.route) }
+                    onOpenAccountSettings = { navController.navigate(Route.AccountSettings.route) },
+                    onOpenTasty = { navController.navigate(Route.Tasty.route) }
                 )
+            }
+            composable(Route.Tasty.route) {
+                TastyDashboardScreen()
             }
             composable(Route.Notifications.route) {
                 NotificationsScreen(onBack = { navController.popBackStack() })
