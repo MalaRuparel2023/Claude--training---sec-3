@@ -117,6 +117,7 @@ dependencies {
     implementation(libs.serialization)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
     //DataStore & Security
     implementation(libs.datastore.preferences)
     implementation(libs.security.crypto)

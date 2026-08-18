@@ -1,14 +1,16 @@
 package com.mr.claudetraining.ui.screens
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,6 +33,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ro.alexmamo.firebasesigninwithemailandpassword.R
 import com.mr.claudetraining.ui.theme.SrteamChatTheme
+
+// Tasty Brand Colors
+val TastyRed = Color(0xFFE31E24)
+val TastyOrange = Color(0xFFFF6600)
+val TastyYellow = Color(0xFFFFCC00)
+val TastyGreen = Color(0xFF6B8E23)
+val TastyDarkGreen = Color(0xFF556B2F)
 
 @Composable
 fun TastyDashboardScreen(
@@ -60,32 +69,24 @@ fun TastyDashboardScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TastyTopBar(modifier: Modifier = Modifier) {
-    CenterAlignedTopAppBar(
-        modifier = modifier,
+    TopAppBar(
+        modifier = modifier.padding(horizontal = 8.dp),
         title = {
             Text(
                 text = stringResource(R.string.tasty_title),
                 fontWeight = FontWeight.Black,
-                fontSize = 24.sp
+                fontSize = 24.sp,
+                letterSpacing = 2.sp
             )
         },
         actions = {
             IconButton(onClick = { }) {
-                IconPlaceholder(Modifier.size(32.dp))
+                Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
             }
         },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+        colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.White
         )
-    )
-}
-
-@Composable
-fun IconPlaceholder(modifier: Modifier = Modifier, color: Color = Color.Gray) {
-    Box(
-        modifier = modifier
-            .size(24.dp)
-            .background(color, RoundedCornerShape(4.dp))
     )
 }
 
@@ -94,31 +95,28 @@ fun HeroSection(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 32.dp),
-        contentAlignment = Alignment.Center
+            .padding(vertical = 16.dp)
     ) {
-        Canvas(modifier = Modifier.size(350.dp)) {
-            drawCircle(
-                color = Color.LightGray.copy(alpha = 0.5f),
-                style = Stroke(
-                    width = 2f,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                )
-            )
-            drawCircle(
-                color = Color.LightGray.copy(alpha = 0.3f),
-                radius = size.minDimension / 1.5f,
-                style = Stroke(
-                    width = 2f,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                )
-            )
+        // Vertical Social Icons
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SocialIconPlaceholder()
+            SocialIconPlaceholder()
+            SocialIconPlaceholder()
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Hero Title
             Text(
                 text = buildAnnotatedString {
-                    withStyle(style = SpanStyle(color = Color(0xFFE31E24), fontWeight = FontWeight.Bold)) {
+                    withStyle(style = SpanStyle(color = TastyRed, fontWeight = FontWeight.Bold)) {
                         append(stringResource(R.string.hero_title_part1))
                     }
                     append("\n")
@@ -126,57 +124,104 @@ fun HeroSection(modifier: Modifier = Modifier) {
                         append(stringResource(R.string.hero_title_part2))
                     }
                 },
-                fontSize = 32.sp,
+                fontSize = 36.sp,
                 textAlign = TextAlign.Center,
-                lineHeight = 38.sp
+                lineHeight = 42.sp
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Box(contentAlignment = Alignment.Center) {
+            // Central Dish with Orbital Images
+            Box(
+                modifier = Modifier.size(360.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Dashed Circles
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val radius1 = size.minDimension / 2.2f
+                    val radius2 = size.minDimension / 1.6f
+                    
+                    drawCircle(
+                        color = Color.LightGray.copy(alpha = 0.5f),
+                        radius = radius1,
+                        style = Stroke(width = 1f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f))
+                    )
+                    drawCircle(
+                        color = Color.LightGray.copy(alpha = 0.3f),
+                        radius = radius2,
+                        style = Stroke(width = 1f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f))
+                    )
+                }
+
+                // Large Main Dish
                 Image(
-                    painter = ColorPainter(Color.Gray),
+                    painter = ColorPainter(Color.Gray), // Replace with real image
                     contentDescription = null,
                     modifier = Modifier
                         .size(240.dp)
                         .clip(CircleShape)
-                        .border(4.dp, Color.White, CircleShape),
+                        .border(6.dp, Color(0xFFF0F0F0), CircleShape)
+                        .padding(8.dp)
+                        .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
-                
-                OrbitalImage(Modifier.offset(x = (-100).dp, y = 80.dp), size = 80.dp)
-                OrbitalImage(Modifier.offset(x = 100.dp, y = 80.dp), size = 80.dp)
-                OrbitalImage(Modifier.offset(x = 0.dp, y = 110.dp), size = 80.dp)
+
+                // Orbital Images
+                OrbitalImage(
+                    modifier = Modifier.align(Alignment.BottomStart).offset(x = 60.dp, y = (-80).dp),
+                    size = 70.dp
+                )
+                OrbitalImage(
+                    modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-20).dp),
+                    size = 80.dp
+                )
+                OrbitalImage(
+                    modifier = Modifier.align(Alignment.BottomEnd).offset(x = (-60).dp, y = (-80).dp),
+                    size = 75.dp
+                )
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // See More Button
             Button(
                 onClick = { },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6600)),
+                colors = ButtonDefaults.buttonColors(containerColor = TastyOrange),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
+                    .fillMaxWidth(0.7f)
                     .height(56.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = stringResource(R.string.see_more), fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(R.string.see_more),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        letterSpacing = 1.sp
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    IconPlaceholder(modifier = Modifier.size(16.dp), color = Color.White)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
             }
         }
+    }
+}
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            IconPlaceholder()
-            IconPlaceholder()
-            IconPlaceholder()
-        }
+@Composable
+fun SocialIconPlaceholder() {
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .background(Color.White, CircleShape)
+            .border(1.dp, Color.LightGray, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        // Placeholder for social icons (IG, FB, TW)
+        Box(modifier = Modifier.size(12.dp).background(Color.Gray, RoundedCornerShape(2.dp)))
     }
 }
 
@@ -188,7 +233,9 @@ fun OrbitalImage(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.D
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .border(2.dp, Color.White, CircleShape),
+            .border(4.dp, Color.White, CircleShape)
+            .padding(2.dp)
+            .clip(CircleShape),
         contentScale = ContentScale.Crop
     )
 }
@@ -222,9 +269,10 @@ fun MenuCategoriesSection(modifier: Modifier = Modifier) {
 fun CategoryCard(name: String, price: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
-            .width(160.dp)
-            .height(240.dp),
-        shape = RoundedCornerShape(16.dp)
+            .width(180.dp)
+            .height(260.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box {
             Image(
@@ -233,37 +281,37 @@ fun CategoryCard(name: String, price: String, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
+            // Dark Gradient Overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)),
+                            startY = 300f
                         )
                     )
             )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.Bottom
             ) {
-                Text(text = name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text(
-                    text = stringResource(R.string.from_price, price),
-                    color = Color(0xFFFF6600),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "from ", color = Color.White, fontSize = 14.sp)
+                    Text(text = price, color = TastyOrange, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
                 Button(
                     onClick = { },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6600)),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    modifier = Modifier.height(32.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = TastyOrange),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.height(36.dp)
                 ) {
-                    Text(text = stringResource(R.string.order_now), fontSize = 10.sp)
+                    Text(text = stringResource(R.string.order_now), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -280,14 +328,15 @@ fun OurSuggestSection(modifier: Modifier = Modifier) {
     ) {
         Text(
             text = stringResource(R.string.our_suggest),
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = stringResource(R.string.our_suggest_desc),
             color = Color.Gray,
+            fontSize = 14.sp,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 48.dp, vertical = 8.dp)
         )
         Spacer(modifier = Modifier.height(24.dp))
         LazyRow(
@@ -304,45 +353,71 @@ fun OurSuggestSection(modifier: Modifier = Modifier) {
 @Composable
 fun SuggestCard(name: String, rating: String, price: String, discount: String, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier.width(200.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.width(220.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
             Box {
                 Image(
-                    painter = ColorPainter(Color.Gray),
+                    painter = ColorPainter(Color.LightGray),
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp),
+                        .height(150.dp),
                     contentScale = ContentScale.Crop
                 )
+                // Discount Badge
                 Surface(
-                    color = Color.Red,
-                    shape = RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp),
+                    color = TastyRed,
+                    shape = RoundedCornerShape(topStart = 24.dp, bottomEnd = 24.dp),
                     modifier = Modifier.align(Alignment.TopStart)
                 ) {
                     Text(
                         text = discount,
                         color = Color.White,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconPlaceholder(Modifier.size(16.dp), color = Color(0xFFFFCC00))
-                    Text(text = " $rating", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text(text = " | +100 review", color = Color.Gray, fontSize = 10.sp)
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = TastyYellow,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(text = " $rating", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(text = " | +100 review", color = Color.Gray, fontSize = 12.sp)
                 }
-                Text(text = name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(text = "Made with juicy beef burger, cheese...", color = Color.Gray, fontSize = 10.sp, maxLines = 1)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = name, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text(
+                    text = "Made with juicy beef burger, cheese...",
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    maxLines = 1
+                )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = price, color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                         Text(
+                            text = "9.20 $", // Placeholder old price
+                            color = Color.LightGray,
+                            fontSize = 12.sp,
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                        )
+                        Text(text = price, color = TastyRed, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    }
+                }
             }
         }
     }
@@ -358,45 +433,51 @@ fun WhyUsSection(modifier: Modifier = Modifier) {
     ) {
         Text(
             text = stringResource(R.string.why_us),
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(24.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .height(400.dp)
         ) {
+            // Splash Burger Image
             Image(
                 painter = ColorPainter(Color.Gray),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.5f)
-                    .align(Alignment.CenterStart),
-                contentScale = ContentScale.Crop
+                    .fillMaxWidth(0.6f)
+                    .align(Alignment.CenterStart)
+                    .offset(x = (-40).dp),
+                contentScale = ContentScale.FillHeight
             )
+            
+            // Speech Bubbles
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.7f)
+                    .fillMaxWidth(0.75f)
                     .align(Alignment.CenterEnd)
                     .padding(end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SpeechBubble(
                     text = "Lorem ipsum dolor sit amet consectetur. Dolor vel euismod mus purus bibendum. Donec imperdiet non netus velit.",
-                    color = Color(0xFFFFCC00),
-                    showAdminIcon = true
+                    color = TastyYellow,
+                    isAdmin = true
                 )
                 SpeechBubble(
                     text = "Lorem ipsum dolor sit amet consec tetur. Dolor vel euismod.",
-                    color = Color(0xFF6B8E23),
-                    showUserIcon = true
+                    color = TastyGreen,
+                    isUser = true,
+                    rating = 4
                 )
                 SpeechBubble(
                     text = "Lorem ipsum dolor sit amet consec tetur. Dolor vel euismod mus purus bibendum. Donec.",
-                    color = Color(0xFF556B2F),
-                    showUserIcon = true
+                    color = TastyDarkGreen,
+                    isUser = true,
+                    rating = 3
                 )
             }
         }
@@ -404,45 +485,75 @@ fun WhyUsSection(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SpeechBubble(text: String, color: Color, showAdminIcon: Boolean = false, showUserIcon: Boolean = false) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (showUserIcon) {
+fun SpeechBubble(
+    text: String,
+    color: Color,
+    isAdmin: Boolean = false,
+    isUser: Boolean = false,
+    rating: Int = 0
+) {
+    Row(verticalAlignment = Alignment.Bottom) {
+        if (isUser) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(Color.Gray)
                 )
-                Text("user name", fontSize = 8.sp, color = Color.Gray)
+                Text("user name", fontSize = 10.sp, color = Color.Gray)
             }
             Spacer(modifier = Modifier.width(8.dp))
         }
+        
         Surface(
             color = color,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = text,
-                modifier = Modifier.padding(12.dp),
-                fontSize = 10.sp,
-                color = Color.White
-            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = text,
+                    fontSize = 12.sp,
+                    color = Color.White,
+                    lineHeight = 16.sp
+                )
+                if (rating > 0) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        repeat(5) { index ->
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = if (index < rating) TastyYellow else Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        Text(text = " (15)", color = Color.White, fontSize = 10.sp)
+                    }
+                }
+            }
         }
-        if (showAdminIcon) {
+
+        if (isAdmin) {
             Spacer(modifier = Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(40.dp)
                         .border(1.dp, Color.Black, CircleShape)
                         .padding(4.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    IconPlaceholder(Modifier.size(16.dp))
+                    Icon(
+                        imageVector = Icons.Default.Star, // Admin icon placeholder
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-                Text("Admin", fontSize = 8.sp)
+                Text("Admin", fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -453,18 +564,18 @@ fun FAQSection(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = stringResource(R.string.faq),
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(24.dp))
         repeat(3) {
             FAQItem()
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
@@ -473,7 +584,7 @@ fun FAQSection(modifier: Modifier = Modifier) {
 fun FAQItem() {
     Surface(
         color = Color(0xFFF5F5F5),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -486,9 +597,14 @@ fun FAQItem() {
             Text(
                 text = stringResource(R.string.faq_placeholder),
                 fontSize = 12.sp,
+                color = Color.DarkGray,
                 modifier = Modifier.weight(1f)
             )
-            IconPlaceholder(Modifier.size(16.dp), color = Color.LightGray)
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = Color.LightGray
+            )
         }
     }
 }
@@ -503,7 +619,7 @@ fun AboutUsSection(modifier: Modifier = Modifier) {
     ) {
         Text(
             text = stringResource(R.string.about_us),
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -511,7 +627,8 @@ fun AboutUsSection(modifier: Modifier = Modifier) {
             text = stringResource(R.string.about_us_desc),
             textAlign = TextAlign.Center,
             color = Color.Gray,
-            fontSize = 14.sp
+            fontSize = 16.sp,
+            lineHeight = 22.sp
         )
     }
 }
@@ -521,64 +638,89 @@ fun FooterSection(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFFFF6600))
-            .padding(32.dp),
+            .background(TastyOrange)
+            .padding(vertical = 48.dp, horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = buildAnnotatedString {
                 append("get the ")
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color.White)) {
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Black, color = Color.White)) {
                     append("Best & Tasty")
                 }
                 append(" Foods\nwith Hight Quality")
             },
             textAlign = TextAlign.Center,
-            color = Color.White.copy(alpha = 0.8f),
-            fontSize = 20.sp
+            color = Color.White.copy(alpha = 0.9f),
+            fontSize = 22.sp,
+            lineHeight = 28.sp
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
         Button(
             onClick = { },
             colors = ButtonDefaults.buttonColors(containerColor = Color.White),
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .height(48.dp)
+                .fillMaxWidth(0.8f)
+                .height(56.dp)
         ) {
-            Text(text = stringResource(R.string.order_now), color = Color(0xFFFF6600), fontWeight = FontWeight.Bold)
+            Text(
+                text = stringResource(R.string.order_now),
+                color = TastyOrange,
+                fontWeight = FontWeight.Black,
+                fontSize = 18.sp
+            )
         }
+        
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+        ) {
+            StoreBadge("Google Play")
+            StoreBadge("App Store")
+        }
+        
         Spacer(modifier = Modifier.height(32.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            AppStoreButtonPlaceholder("Google Play")
-            AppStoreButtonPlaceholder("App Store")
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            // Footer Social Icons
+            Box(modifier = Modifier.size(24.dp).background(Color.White.copy(alpha = 0.2f), CircleShape))
+            Box(modifier = Modifier.size(24.dp).background(Color.White.copy(alpha = 0.2f), CircleShape))
+            Box(modifier = Modifier.size(24.dp).background(Color.White.copy(alpha = 0.2f), CircleShape))
         }
+        
         Spacer(modifier = Modifier.height(24.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            IconPlaceholder(color = Color.White)
-            IconPlaceholder(color = Color.White)
-            IconPlaceholder(color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(24.dp))
+        
         Text(
             text = stringResource(R.string.copyright),
-            color = Color.White.copy(alpha = 0.6f),
-            fontSize = 10.sp
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 12.sp
         )
     }
 }
 
 @Composable
-fun AppStoreButtonPlaceholder(text: String) {
-    Box(
-        modifier = Modifier
-            .width(120.dp)
-            .height(40.dp)
-            .background(Color.Black, RoundedCornerShape(8.dp))
-            .padding(4.dp),
-        contentAlignment = Alignment.Center
+fun StoreBadge(label: String) {
+    Surface(
+        color = Color.Black,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.width(140.dp).height(45.dp)
     ) {
-        Text(text = text, color = Color.White, fontSize = 10.sp)
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+             Box(modifier = Modifier.size(24.dp).background(Color.White, RoundedCornerShape(4.dp))) // Placeholder icon
+             Spacer(modifier = Modifier.width(8.dp))
+             Column {
+                 Text(text = "GET IT ON", color = Color.White, fontSize = 8.sp)
+                 Text(text = label, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+             }
+        }
     }
 }
 

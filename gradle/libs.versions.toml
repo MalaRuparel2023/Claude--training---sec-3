@@ -65,6 +65,7 @@ firebase-perf = { module = "com.google.firebase:firebase-perf" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServices" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization"}
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }

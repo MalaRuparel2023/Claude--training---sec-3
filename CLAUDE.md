@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repository (the `ClaudeTraining` Android app).
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+Guidance for Claude Code when working in the `ClaudeTraining` Android app — a sandbox for Android engineering with Claude Code, featuring a real Kotlin/Compose Clean Architecture app with offline-first patterns, Firebase integration, and Stream Chat.
 
 ## Project
 
@@ -13,7 +15,7 @@ Two modules:
 - `:app` — Compose UI, ViewModels, Firebase/Room/Stream-backed data sources, Hilt wiring.
 - `:domain` — pure Kotlin: models + repository interfaces + use cases (no Android/SDK types).
 
-Despite the chat-heavy docs below, the app spans several feature areas — see **Feature areas**.
+The app spans multiple feature areas: Auth, Chat (Stream), Workout Sessions (offline-first), Health, Fitness, Yoga, and Dashboard. See **Feature areas** below.
 
 ### Build commands
 
@@ -72,7 +74,7 @@ NPEs, architectural violations, and missing tests; emits severity-ranked finding
 refactors) → post to the PR → human reviews independently and fills the comparison table → deltas
 feed back into the checklist. A PR merges only after `:app:lintMockDebug`,
 `:app:testMockDebugUnitTest`, `:app:koverVerifyMockDebug` (≥80 %), and the `check-architecture`
-skill pass. Prefer the `code-review-graph` MCP tools over whole-file reads when reviewing.
+skill pass.
 
 ## Feature areas
 
@@ -84,7 +86,7 @@ impl in `:app/data`, ViewModel in `:app/ui/viewmodel`. Repos are bound in `di/Re
 |------|--------|---------|
 | Auth | `AuthRepository` | Firebase Auth (email/password + Google Sign-In) |
 | Chat | `ChatRepository` | Stream Chat (`prod`) / in-memory fake (`mock`) — see below |
-| Jobs | `JobRepository`, `FilteredJobsRepository`, `SearchRepository` | Firestore + Room cache (`data/local`) |
+| Workout Sessions | `WorkoutSessionRepository` | Firestore + Room cache (`data/local`); offline-first with sync |
 | Health / Fitness | `HealthRepository` | Firestore |
 | Yoga | `YogaRepository` | Firestore |
 | Dashboard | `Dashboard` model | aggregates the above |
@@ -92,9 +94,9 @@ impl in `:app/data`, ViewModel in `:app/ui/viewmodel`. Repos are bound in `di/Re
 | Push | `PushTokenRepository` | FCM token registration (`data/messaging`); Cloud Functions in `functions/` send |
 | Crash / Analytics / Perf | `CrashReporter`, `AnalyticsLogger`, `PerformanceTracer` | Firebase (see **Analytics & Performance**) |
 
-**Local persistence**: Room (`data/local`, schemas exported to `app/schemas/`) caches jobs/messages/users
+**Local persistence**: Room (`data/local`, schemas exported to `app/schemas/`) caches workout sessions/messages/users
 for offline-first reads; DataStore + `security-crypto` hold preferences/secrets. `data/sync` reconciles
-remote→local.
+remote→local (see `WorkoutSessionRepository.syncToCloud()`).
 
 ## Stream Chat integration
 
@@ -183,15 +185,14 @@ unit-testable (pass `mock()` / `NoOpPerformanceTracer`).
 - `screen_view` (param `screen_name`) — `NavigationHost` `LaunchedEffect(currentRoute)`.
 - `send_message` (param `channel_id`) + `add_reaction` (param `reaction`) — `ChatDetailViewModel`.
 
-The job-funnel events (`view_job_list`, `view_job`, `apply_to_job`, `save_job`, `search`) are
-defined in `AnalyticsEvent` but **not yet emitted** — there's no job list/detail/apply UI to hook
-them to. Wire them when those screens land.
+Legacy: job-funnel events (`view_job_list`, `view_job`, `apply_to_job`, `save_job`, `search`) are
+defined in `AnalyticsEvent` but **not emitted** — Jobs were replaced with Workout Sessions; wire
+workout-session events if needed.
 
 ### Performance traces
 
 - App-start time, screen rendering (slow/frozen frames), and network requests are **auto-captured**
   by the Performance SDK — no code.
-- `job_list_load` — `JobRepositoryImpl.observeJobs` (subscription → first emitted list).
 - `chat_message_send` — `ChatDetailViewModel.sendMessage` (send → SDK ack).
 
 ### Firebase Console setup (one-time, project owner)
