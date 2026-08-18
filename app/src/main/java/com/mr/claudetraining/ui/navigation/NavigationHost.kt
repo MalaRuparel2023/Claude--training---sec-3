@@ -50,8 +50,10 @@ import com.mr.claudetraining.ui.screens.ChatListScreen
 import com.mr.claudetraining.ui.screens.DiaryScreen
 import com.mr.claudetraining.ui.screens.NotificationsScreen
 import com.mr.claudetraining.ui.screens.HealthDashboardScreen
-import com.mr.claudetraining.ui.screens.JobListScreen
 import com.mr.claudetraining.ui.screens.ProfileScreen
+import com.mr.claudetraining.ui.screens.WorkoutSessionCreateScreen
+import com.mr.claudetraining.ui.screens.WorkoutSessionDetailScreen
+import com.mr.claudetraining.ui.screens.WorkoutSessionListScreen
 import com.mr.claudetraining.ui.screens.ProgressScreen
 import com.mr.claudetraining.domain.model.ChatConnectionState
 import com.mr.claudetraining.ui.screens.ActivityDetailScreen
@@ -65,7 +67,11 @@ import com.mr.claudetraining.ui.viewmodel.FeatureFlagsViewModel
 
 sealed class Route(val route: String) {
     object Home : Route("home")
-    object Jobs : Route("jobs")
+    object WorkoutSessions : Route("workout_sessions")
+    object WorkoutSessionCreate : Route("workout_session_create")
+    object WorkoutSessionDetail : Route("workout_session_detail/{sessionId}") {
+        fun createRoute(sessionId: String) = "workout_session_detail/$sessionId"
+    }
     object Diary : Route("diary")
     object Workout : Route("workout")
     object Progress : Route("progress")
@@ -89,7 +95,7 @@ private data class BottomNavItem(
 
 private val bottomNavItems = listOf(
     BottomNavItem(Route.Home.route, "Home", Icons.Filled.Home),
-    BottomNavItem(Route.Jobs.route, "Jobs", Icons.Filled.Work),
+    BottomNavItem(Route.WorkoutSessions.route, "Sessions", Icons.Filled.Work),
     BottomNavItem(Route.Diary.route, "Diary", Icons.Filled.Restaurant),
     BottomNavItem(Route.Workout.route, "Workout", Icons.Filled.FitnessCenter),
     BottomNavItem(Route.Progress.route, "Progress", Icons.Filled.Insights),
@@ -226,9 +232,23 @@ private fun MainScaffold(
                     ActivityDetailScreen(onBack = { navController.popBackStack() })
                 }
             }
-            composable(Route.Jobs.route) {
-                // onOpenJob wired to the detail screen in the follow-up PR.
-                JobListScreen()
+            composable(Route.WorkoutSessions.route) {
+                WorkoutSessionListScreen(
+                    onOpenSession = { sessionId -> navController.navigate(Route.WorkoutSessionDetail.createRoute(sessionId)) },
+                    onCreateSession = { navController.navigate(Route.WorkoutSessionCreate.route) }
+                )
+            }
+            composable(Route.WorkoutSessionCreate.route) {
+                WorkoutSessionCreateScreen(
+                    onSuccess = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = Route.WorkoutSessionDetail.route,
+                arguments = listOf(navArgument("sessionId") { type = NavType.StringType })
+            ) {
+                WorkoutSessionDetailScreen(onBack = { navController.popBackStack() })
             }
             composable(Route.Diary.route) { DiaryScreen() }
             composable(Route.Workout.route) {

@@ -9,28 +9,6 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface JobDao {
-    @Query("SELECT * FROM jobs ORDER BY postedAt DESC")
-    fun observeAll(): Flow<List<JobEntity>>
-
-    @Query("SELECT * FROM jobs WHERE id = :id")
-    fun observe(id: String): Flow<JobEntity?>
-
-    @Upsert
-    suspend fun upsertAll(jobs: List<JobEntity>)
-
-    @Query("DELETE FROM jobs WHERE id NOT IN (:keepIds)")
-    suspend fun deleteNotIn(keepIds: List<String>)
-
-    /** Mirrors a fresh pull: upsert everything, then drop rows the server no longer has. */
-    @Transaction
-    suspend fun replaceAll(jobs: List<JobEntity>) {
-        upsertAll(jobs)
-        deleteNotIn(jobs.map { it.id })
-    }
-}
-
-@Dao
 interface UserDao {
     @Query("SELECT * FROM users WHERE id = :id")
     suspend fun getById(id: String): UserEntity?
@@ -52,18 +30,6 @@ interface MessageDao {
 
     @Query("DELETE FROM messages WHERE channelId = :channelId")
     suspend fun clearChannel(channelId: String)
-}
-
-@Dao
-interface JobQueryDao {
-    @Query("SELECT * FROM job_queries WHERE queryKey = :key")
-    suspend fun getByKey(key: String): JobQueryEntity?
-
-    @Upsert
-    suspend fun upsert(query: JobQueryEntity)
-
-    @Query("DELETE FROM job_queries WHERE cachedAt < :staleBefore")
-    suspend fun deleteStale(staleBefore: Long)
 }
 
 @Dao

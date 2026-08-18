@@ -11,20 +11,18 @@ import androidx.room.TypeConverters
  */
 @Database(
     entities = [
-        JobEntity::class,
+        WorkoutSessionEntity::class,
         MessageEntity::class,
         UserEntity::class,
-        JobQueryEntity::class,
         MessageDraftEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class TalentSureDatabase : RoomDatabase() {
-    abstract fun jobDao(): JobDao
+    abstract fun workoutSessionDao(): WorkoutSessionDao
     abstract fun userDao(): UserDao
     abstract fun messageDao(): MessageDao
-    abstract fun jobQueryDao(): JobQueryDao
     abstract fun messageDraftDao(): MessageDraftDao
 }

@@ -10,21 +10,17 @@ import com.mr.claudetraining.data.analytics.FirebasePerformanceTracer
 import com.mr.claudetraining.data.crash.CrashlyticsReporter
 import com.mr.claudetraining.data.messaging.FcmTokenRepository
 import com.mr.claudetraining.data.repository.AuthRepositoryImpl
-import com.mr.claudetraining.data.repository.FilteredJobsRepositoryImpl
 import com.mr.claudetraining.data.repository.HealthRepositoryImpl
-import com.mr.claudetraining.data.repository.JobRepositoryImpl
-import com.mr.claudetraining.data.repository.SearchRepositoryImpl
+import com.mr.claudetraining.data.repository.WorkoutSessionRepositoryImpl
 import com.mr.claudetraining.data.repository.YogaRepositoryImpl
 import com.mr.claudetraining.domain.repository.AnalyticsLogger
 import com.mr.claudetraining.domain.repository.AuthRepository
 import com.mr.claudetraining.domain.repository.CrashReporter
 import com.mr.claudetraining.domain.repository.PerformanceTracer
 import com.mr.claudetraining.domain.repository.FeatureFlagProvider
-import com.mr.claudetraining.domain.repository.FilteredJobsRepository
 import com.mr.claudetraining.domain.repository.HealthRepository
-import com.mr.claudetraining.domain.repository.JobRepository
 import com.mr.claudetraining.domain.repository.PushTokenRepository
-import com.mr.claudetraining.domain.repository.SearchRepository
+import com.mr.claudetraining.domain.repository.WorkoutSessionRepository
 import com.mr.claudetraining.domain.repository.YogaRepository
 import javax.inject.Singleton
 
@@ -46,15 +42,7 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindJobRepository(impl: JobRepositoryImpl): JobRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindFilteredJobsRepository(impl: FilteredJobsRepositoryImpl): FilteredJobsRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
+    abstract fun bindWorkoutSessionRepository(impl: WorkoutSessionRepositoryImpl): WorkoutSessionRepository
 
     @Binds
     @Singleton
